@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routes</title>
+    <style>
+        body{
+            background-color: #09073a;
+            padding: 0;
+            margin: 0;
+
+        }
+        @keyframes clippath {
+            0%, 100% {
+                clip-path: inset(0 0 8% 0);
+            }
+            25% {
+                clip-path: inset(0 8% 0 0);
+            }
+            50% {
+                clip-path: inset(8% 0 0 0);
+            }
+            75% {
+                clip-path: inset(0 0 0 8%);
+            }
+        }
+        @keyframes bing{
+            0%, 100% {
+                box-shadow: 0px 0px 20px 10px #224f7d;
+            }
+            25% {
+                /* height: 1.2in;
+                width: 1.2in;
+                border-radius: 0.6in; */
+                box-shadow: 0px 0px 20px 30px #144c83;
+            }
+            50% {
+                /* height: 1.4in;
+                width: 1.4in;
+                border-radius: 0.7in; */
+                box-shadow: 0px 0px 20px 60px #073360;
+            }
+            75% {
+                /* height: 1.2in;
+                width: 1.2in;
+                border-radius: 0.6in; */
+                box-shadow: 0px 0px 20px 30px #144c83;
+            }
+        }
+        @keyframes shiing {
+            0%, 100% {
+                margin-top: 30px;
+            }
+            25% {
+                margin-top: 60px;
+            }
+            50% {
+                margin-top: 30px;
+            }
+            75% {
+                margin-top: 0px;
+            }
+        }
+        .route-body{
+            animation: clippath 3s infinite linear;
+        }
+        .left-section {
+            display: flex;
+            flex-direction: column;
+            /* width: 96%; */
+            flex-flow: wrap;
+            height: 70%;
+            /* padding: 10px; */
+            margin-top: 1vh;
+            /* min-height: 95vh; */
+            /* height: 200px; */
+            height: 79vh;
+            background-color: inherit;
+            overflow-y: auto;
+
+        }
+        .right-section {
+            /* margin-top: 1vh; */
+            display: flex;
+            width: 100%;
+
+            flex-direction: column;
+            height: 20vh;
+            /* min-width: 4in; */
+            /* max-width: 20in; */
+            /* min-height: 95vh; */
+            background-color: white;
+            /* padding: 10px; */
+        }
+        
+        .route{
+            transition: all 0.5s;
+            z-index: 20;
+            /* background: rgb(255 255 255); */
+            background-color: white;;
+            /* padding: 0.1cm; */
+            /* background-color: rgba(255, 255, 255, 0.2); */
+            margin: 1px;
+            margin-top: 3cm;
+            margin-left: 60px;
+            height: 1in;
+            width: 1in;
+            border: 1px solid whitesmoke;
+            border-radius: 0.5in;
+            /* display: flex; */
+            /* flex-direction: column; */
+            /* align-items: center; */
+            font-size: initial;
+            box-shadow:10px 10px 10px rgb(31, 30, 30);
+            
+            
+            /* border-top: 5px solid rgb(255, 21, 0); */
+        }
+        .route-body{
+            /* position: fixed; */
+            /* display: none; */
+            transition: all 0.5s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            font-size: x-small;
+            height: 90px;
+            width: 90px;
+            /* position:relative; */
+            /* top: -4px; */
+            /* padding: 1px; */
+            /* left: 4px; */
+            
+            border-radius: 45px;
+            border-top: 1.5px solid black;
+            border-bottom: 1.5px solid white;
+        }
+        .route-body > i{
+            transition: all 0.5s;
+        }
+        
+        
+        
+        
+        .route > .route-body > addres{
+            
+            /* display: block; */
+            /* color: darkcyan; */
+            /* float: right; */
+            margin-top: 10px;
+            /* margin-top: 35px; */
+            /* font-size: initial; */
+        }
+
+
+        .used-route{
+            color: darkblue;
+            background-color: #7d9ddf;
+            margin-top: 1cm;
+            margin-left: 0px;
+            box-shadow: 0px 0px 20px 20px #224f7d;
+            animation: bing 5s  infinite linear;
+            /* display: flex; */
+            align-items: center;
+            /* flex-direction: wrap; */
+            
+        }
+
+        .route > .host{
+            transition: all 0.5s;
+            display: flex;
+            font-family:'Courier New', Courier, monospace;
+            font-size: medium;
+            font-weight: bold;
+            border-bottom: 1px solid black;
+            justify-content: center;
+            margin-top:40px;
+            font-size: 14px;
+        }
+        .route-body > i{
+            font-family:monospace;
+            /* color: brown; */
+            /* font-size: initial; */
+            font-size: 6px;
+        }
+
+        .used-route > .route-body > addres{
+            /* display: block; */
+            color: rgb(255, 255, 255);
+        }
+
+        .used-route > .host{
+            display: flex;
+            font-family:'Courier New', Courier, monospace;
+            font-size: medium;
+            font-weight: bold;
+            border-bottom: 1px solid black;
+            justify-content: center;
+            font-size: initial;
+        }
+        
+        .used-route > .host{
+            border-bottom: 1px solid white;
+        }
+
+        .route:hover {
+            /* padding: 0.1cm; */
+            /* transition:  0.5s; */
+            /* margin-top: 1.1cm; */
+            cursor: pointer;
+            width: 1.1in;
+            height: 1.1in;
+            border-radius: 0.55in;
+            /* height: 1.3in; */
+            /* min-width: 200px; */
+            
+            border: 1px solid whitesmoke;
+            /* border-radius: 10px; */
+            /* border-top: 5px solid rgb(255, 21, 0); */
+            /* border-top: 5px solid rgb(248, 198, 33); */
+            box-shadow:0px 30px 20px rgb(40, 39, 39);
+        }
+        .route:hover .route-body>addres{
+            
+            color: white;
+        }
+
+
+        
+        .used-route > .route-body>addres{
+            color: darkblue;
+        }
+
+        .route:hover  .route-body {
+            width: 1in;
+            height: 1in;
+            border-radius: 0.5in;
+            /* transition:  0.5s; */
+            /* display: inline; */
+            color: black;
+            border: 1.5px solid black;
+        }
+        .route:hover .route-body>i{
+            font-size: x-small;
+        }
+        .route:hover .host{
+            /* transition:  0.5s; */
+            /* margin-top:-15px; */
+            border-bottom: none;
+            transition: 0.5s;
+            
+        }
+        .used-route > .route-body{
+            border-color: white;
+            backdrop-blur: 10px;
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid darkgreen;
+            position: fixed;
+            /* margin-left: 1%; */
+
+            
+        }
+
+        .used-route:hover .route-body {
+            border-color: white;
+            border-top-color: white;
+            border-bottom-color: darkblue;
+        }
+
+        .used-route:hover {
+            
+            transition:  0.5s;
+            margin-top: 1.1cm;
+            cursor: pointer;
+        }
+    
+        .running-area{
+            z-index: 1;
+            display: flex;
+            flex-flow: wrap;
+            height: 200px;
+            padding: 0;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        #area-title{
+            position: fixed;
+            /* top: 30px; */
+            /* z-index: 2; */
+        }
+
+        .start-btn{
+            display: block;
+            float: right;
+            width: 65px;
+            height: 35px;
+            border-radius: 12px;
+            border: 8px solid rgb(201, 231, 210);
+            background-color: darkcyan;
+            color: azure;
+            padding: initial;
+            cursor:context-menu;
+        
+        }
+
+        #bg{
+            display: block;
+            z-index: 0;
+            position: fixed;
+        }
+        #state{
+            z-index: 0;
+            align-self: center;
+        }
+        .waitting {
+            animation: shiing 0.2s 10 linear;
+        }
+        #state{
+            position: fixed;
+        }
+
+        #global-btn{
+            transition: all 1s;
+            z-index: 30;
+            position: fixed;
+            display: inline-block;
+            /* background-color: ; */
+            writing-mode: tb-rl;
+            height: 140px;
+            max-width: 30px;
+            text-align: center;
+            
+            
+            box-shadow: 10px 0px 10px gray;
+            margin-top: 15px;
+            border-top-right-radius:30px ;
+            border-bottom-right-radius:30px ;
+            /* animation: clippath 4s infinite; */
+            border: 1px solid darkblue;
+        }
+
+
+        #global-btn:hover{
+            font-size: medium;
+            cursor: pointer;
+            box-shadow: 10px 10px 10px gray;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="right-section">
+        <h1 id="area-title" style="padding: 0.2in;">
+        <!-- 可以把<u style="color: brown;"> 下面的代理块</u>  拖到这里 <i style="color: darkgreen;">运行</i>  -->
+        </h1>
+        <div id="global-btn" onclick="return SetGlobal('on')">Open Global</div>  
+        <div id="running-area" class="running-area"></div>
+    </div>
+    
+
+    <div class="left-section" id="ready-area">
+        
+        {{ range $no, $H := . }}
+        <div id="host-{{$no}}" host="{{$H.Host}}"  onclick="return Go('{{ $H.Host }}')" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">{{$H.Host}}</div>
+            <div class="route-body">
+                <i class="link">{{ $H.IDS }}</i>
+                <i class="speed">{{ $H.Speed }}</i></br>
+                <addres class="in">{{ $H.Location }}</addres>
+            </div>
+        </div>
+        {{ end }}
+<!--     
+        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div>
+                <div class="route-body">
+                 <i>23</i></br>
+                 <i>123.12412ms</i></br>
+                <addres>Location</addres></br>
+            
+            </div>
+        </div> 
+       
+        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div>
+                <div class="route-body">
+                 <i>23</i></br>
+                 <i>123.12412ms</i></br>
+                <addres>Location</addres></br>
+            
+            </div>
+        </div> 
+       
+        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div>
+                <div class="route-body">
+                 <i>23</i></br>
+                 <i>123.12412ms</i></br>
+                <addres>Location</addres></br>
+            
+            </div>
+        </div> 
+       
+        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div>
+                <div class="route-body">
+                 <i>23</i></br>
+                 <i>123.12412ms</i></br>
+                <addres>Location</addres></br>
+            
+            </div>
+        </div> 
+        <div id="host-1" class="route" draggable="true"  ondragstart="drag(event)" >
+            <div class="host">123.4.5.6</div>
+                <div class="route-body">
+                 <i>23</i></br>
+                 <i>123.12412ms</i></br>
+                <addres>Location</addres></br>
+            
+            </div>
+        </div>  -->
+       
+        <svg id="bg" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 800" style="background:#09073a">
+            <text x="5" y="5" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">    r       ii u a r/ a  ni    e gc/    oia hcl  n      ae w  t  o i        m   n    i</text><text x="5" y="22.326923076923077" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> a g g    c e  h e  tg ie er       tm neisrsaymdrn l s    gs ec u s k    h  i   t     </text><text x="5" y="39.65384615384615" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">n e  i     n   o e h  n i  egidw ii    H  a   / s r rnmgn  e e  bo e deum d   t  /    </text><text x="5" y="56.980769230769226" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> is t   la      oo i n n ,  ttvHgd adisalgss nalcg s g/too    Jmne nrc/ n   ca      a </text><text x="5" y="74.3076923076923" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">   f H u      /s so  apo o i/  a inohim fiite crafl rt m  i,  onnh ei w          uu   </text><text x="5" y="91.63461538461539" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">i    er   fr w smaa     and a  ae9cr  inlpe ek k ckictkair  u iesc anpe n    h pia fn </text><text x="5" y="108.96153846153845" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">       rio  g mit o aar stc iaca ieh  eg nrclna nni e   oifms n,/p       i  e e cc    </text><text x="5" y="126.28846153846153" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> li     lt o   eineb  ,nak g n n nh chut tt m, e iysno oadew aatgoe nlta     /   n  u </text><text x="5" y="143.6153846153846" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">   at    g  a  g erastg  gmee nri  ruUfnrf ns rtMl nlige n eTdavo v     nh c r t p mas</text><text x="5" y="160.94230769230768" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">   ba  m giashG umh gre r n n  sn b,ulrei aanrlukes eahoioira eti ,a rar   a amc  h   </text><text x="5" y="178.26923076923077" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">     n daed s  dua aiea u idlc s a ia,s5 opao ,ieu tit yn tta aeian eiae   e   na  e  </text><text x="5" y="195.59615384615384" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">  e  i r  hl illikl isaeu a  ogrtghtdr  i   ftn,ig s rbsrieef c rn  w  acou e ,ia  r  </text><text x="5" y="212.9230769230769" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">t     3ifiuoinaac n  ao  etao//ioo   klcc  tillknaoa oen otaseii bonan foeyuma  ueet p</text><text x="5" y="230.25" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">/itve/ if nl   ofnaeitn igda ict ieseliiii if,r nao k se irnti eg nog lgonm/nidniwneg </text><text x="5" y="247.57692307692307" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">h  aai vianntn   hR xnr rpbrsuau,eror p nuga saiu enn ofte ;m  ni ro e mAel du ga  otH</text><text x="5" y="264.90384615384613" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">  ,   o  ii nAnrwoi m g  teao    pivvl  il  ai cbtv oya   eco e  inn mea a   igc O d//</text><text x="5" y="282.2307692307692" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">     oKoeaalnieeoa ala i,tsio     e t nsn l rm 1itUo les rrk cs cer tore aiai sm m ngi</text><text x="5" y="299.5576923076923" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> et    e  ceit nolil ueninisnvyl iwaet wahe ehni l ma  it cl lcosegcoaooehtea coria lr</text><text x="5" y="316.88461538461536" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> fr  iu iwl iosifei, daeuaao ia  nn nngf g  toJ ometpAiiitrnrn sya tar p s nagri Gt   </text><text x="5" y="334.21153846153845" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">  m/ , s cses imise1 e c ws onheagnydpus g gilAhaoofg Lillba mn f o,rcem kdtel g/n   o</text><text x="5" y="351.53846153846155" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">r/wsrssn g   i e uteo ue y ritni mwpy,  afi thiniolrhre  no a  emii uiem ma ilnmgKart </text><text x="5" y="368.8653846153846" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">iyygniei    b Mennsiy snm i Mat  a e oodtmra e  il ienrsstwaryonli on Ph ii snray /  i</text><text x="5" y="386.1923076923077" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">ll egiu  e og,hlttvsoaio ront,gabtekmprinn fyhhn t eeoh ii aa eiewagay nmo ehTftii  n </text><text x="5" y="403.5192307692308" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> ,  /s padla bs,onc,l  i iw amyo uutuse /ulffro edsivot ry ga,tinur intip io  ne qn/  </text><text x="5" y="420.8461538461538" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> i  g  ttel clqri t i          fm      yrors teuuc sn  tpa leet b k  rt  rk   yaga aal</text><text x="5" y="438.1730769230769" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">  ct  es6  omlodsoe e                                              n aun o   a gg ibai</text><text x="5" y="455.5" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> ytnb a rec  a i abcs                                             sfon nt ith ao  i m/</text><text x="5" y="472.8269230769231" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">c  ieep mesrgsha  rat                                             afn ae eitnt a  oMii</text><text x="5" y="490.15384615384613" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> i  t o  e aer,l   ai hslct eg  ,      wrWalteldrPerdemugoht      grio3t np ate en oC </text><text x="5" y="507.4807692307692" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> h n/sn nanwwbdraeay eoyo tdu ip o   hgn l urwoPytppfwttis nslfo iluc l i dino  einaow</text><text x="5" y="524.8076923076923" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">id  r eatf iemaeli rn sskwsyt;am uatlmcbnner bbia vcractne lo v sle oop ab eniagci /ci</text><text x="5" y="542.1346153846154" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> vev moiiniu esovdad krortnssAosnh    JSt erntmtee, igefoietrati yn d sa g ryA sti/m a</text><text x="5" y="559.4615384615385" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> aa husc i  lll  nf rwi seraUnl cnt amwrJthlJesdallpJ et a lai,eo   5eas   ee jo d  r </text><text x="5" y="576.7884615384615" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">rc  cn pm w neoteu,tro lo  tb   jdab t n al t n  pa g i  uof n  yrvueeyeto  ionx ucr n</text><text x="5" y="594.1153846153846" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> admigi rao  el ml/ go a ais    m utcs ewto r mb  own nr a  ndopnodon4axsu  rap K    a</text><text x="5" y="611.4423076923077" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">baac r nm   r o w  i b  cMe lblaityiatt; nry cn  tcth/ h riimt eWfmgne en  lne t m oh </text><text x="5" y="628.7692307692307" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">ecmiiso  tn  erihmmno ao fu  geientooa nlinlt nelldieefpon  aip nn fmo ei s    rund   </text><text x="5" y="646.0961538461538" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> wgeobr,   eininnli  np os h o vy  dr bc gstrslor   se 8uiu  win tso fa     ia/ c /   </text><text x="5" y="663.4230769230769" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> nneim   et w  nu o tnn nnbiori uiiipsrs  e urey ooni oe  doa  dililrrnn6in i s i e br</text><text x="5" y="680.75" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> cg smv  n nt as i wip,ktn, etdrt  ami.8  nrvy sas suwywrrgi  nheiwrd ccr  te i  ad   </text><text x="5" y="698.0769230769231" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">   gie , i aoi tgnblh a  4ptolna dnn lylMlm se  kisandr eer/ ab    n goh iiibk n      </text><text x="5" y="715.4038461538462" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> ouiegfnw wtb urasenndfbcMon nindxnes   yw-   ;aaioi  eva t h   lnii a cn np c   e u  </text><text x="5" y="732.7307692307692" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">e s ihiii/dw se r  ene clgfirr  rarnd eatoni e trtt3lgyebi ceeorlt  i c t      e  n   </text><text x="5" y="750.0576923076923" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> G     lgr  m mnnem e sm nd c  m hlyi aa ,autcr to gesertte  ntmtg ea ,/gi inme Mo hln</text><text x="5" y="767.3846153846154" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;"> irs  a en    n miimm1c i f ennn n  ee t e lna  oopraue snaonfn alelei mm eml/    l  a</text><text x="5" y="784.7115384615385" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">  h    rei  meo   gg  pleiatn fy u nhe icoo o b  rn     nnnree  a  utyaw   etc    a   </text><text x="5" y="802.0384615384615" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">     e  din n i/d    /aairb tiinnt mf   n aendn,  iiis ne  rm g eh  g  ng c      ile p</text><text x="5" y="819.3653846153846" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">    ei/e  u e oe ee cica ecnn  huln aoltyt bspinsllci g nr ut ne ar. iwg/f de  ia /   </text><text x="5" y="836.6923076923076" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">  c  n  rclbsrse/  i,tssrt c e/ci  rctaaog,nua e  aaeen,e  io /i/  /dncti      h      </text><text x="5" y="854.0192307692307" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">   b   n r  arr   p   v om,l  dd sna  a e  s  a iith   bHMarnw itven m l  ov i  l   e </text><text x="5" y="871.3461538461538" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">    b     n tms  r   n   g go n t  g iad o //  bQ  c onaada    ot t eti xc   e  am   e</text><text x="5" y="888.6730769230769" fill="#7d9ddf" style="font-size: 16.4606px; font-family: monospace; dominant-baseline: hanging; white-space: pre;">      /u e   up   ge i s    of a m  en a  wai a/n/ gn   ie y              ,c      b  e</text>
+        </svg>
+    
+      </div>
+
+      
+    
+    <script>
+
+function allowDrop(ev) {
+    ev.preventDefault();
+}
+
+function drag(ev) {
+    // console.log(ev.target);
+    ev.dataTransfer.setData("text", ev.target.id);
+}
+
+function drop(ev) {
+    ev.preventDefault();
+    var data = ev.dataTransfer.getData("text");
+    ev.target.appendChild(document.getElementById(data));
+}
+
+const droppableDiv = document.getElementById("running-area");
+
+droppableDiv.addEventListener("dragover", function(event) {
+  event.preventDefault();
+});
+
+droppableDiv.addEventListener("drop", function(event) {
+    event.preventDefault();
+    let Par =  document.querySelector("#running-area");
+    const childN = Par.childNodes[1];
+    if (childN != null && childN.className.indexOf("used-route")>-1 ){
+        childN.classList.remove("used-route");
+        document.getElementById("ready-area").prepend(childN);
+    }
+    const data = event.dataTransfer.getData("text");
+    let movedE = document.getElementById(data);
+    movedE.classList.add("used-route");
+    Go(`${movedE.getAttribute("host")}`);
+    Par.appendChild(movedE);
+
+});
+
+var state  = "ready";
+
+const backReady = document.getElementById("ready-area");
+backReady.addEventListener("dragover", function(event) {
+    event.preventDefault();
+});
+
+backReady.addEventListener("drop", function(event) {
+    event.preventDefault();
+    const data = event.dataTransfer.getData("text");
+    let movedE = document.getElementById(data);
+    movedE.classList.remove("used-route");
+    backReady.appendChild(movedE);
+    const childN = droppableDiv.childNodes[1];
+    if (childN == null){
+        droppableDiv.classList.remove("run");
+    }
+});
+
+
+function Go(host){
+    // let state = document.querySelector("#state").textContent;
+    if (state == "wait"){
+        
+        return false;
+    }
+    state = "wait"
+    document.querySelector(`div[host="${host}"]`).setAttribute("onclick","return false");
+    fetch("/z-api", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            op:"switch",
+            host:host,
+        })
+    }).then((response) => {
+        try{
+            return response.json()
+        } catch{
+            return null
+        }
+        
+    }).then(d=>{
+        state = "ready";
+        document.querySelector(`div[host="${host}"]`).setAttribute("onclick",`return Go("${host}")`);
+        if (d != null){
+            if (d.status == "ok"){
+                SetHostRunningByHost(d.msg);
+            }else{
+                // alert(d.msg);
+            }
+
+        }
+    });
+
+}
+
+
+function SetGlobal(st ){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"global",
+            state:st,
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d == null){
+            return
+        }
+        if (d.status == "ok"){
+            // console.log(d.msg);
+            if (st == "on"){
+                uisetgloabl(true)
+            }else{
+                uisetgloabl(false)
+            }
+        }
+    })
+}
+
+
+function uisetgloabl(st){
+    if (!st){
+        document.querySelector("#global-btn").setAttribute("onclick",`return SetGlobal("on")`)
+        document.querySelector("#global-btn").textContent = "Open Gloabl"
+        document.querySelector("#global-btn").style.background = "white";
+        document.querySelector("#global-btn").style.color = "#09073a";
+        
+    }else{
+        document.querySelector("#global-btn").setAttribute("onclick",`return SetGlobal("off")`)
+        document.querySelector("#global-btn").textContent = "Close Gloabl"
+        document.querySelector("#global-btn").style.background = "#09073a";
+        document.querySelector("#global-btn").style.color = "white";
+    }
+}
+
+function Check(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"check",
+        })
+    }).then((response) => response.json()).then(d=>{
+        if (d.status == "ok"){
+            if (d.msg != null && d.msg.running != ""){
+                Run = true;
+                if (d.msg.global != null && d.msg.global){
+                    uisetgloabl(true)
+                }else{
+                    uisetgloabl(false)
+                }
+                SetHostRunningByHost(d.msg.running);
+            } else{
+                Run = false;
+            }
+        }
+    })
+}
+
+
+var Run = false;
+
+function Test(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"test",
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d == null){
+            return
+        }
+        if (d.status == "ok"){
+            
+            
+            if (d.msg != null && d.msg.length > 0){
+                
+                d.msg.forEach(onevps => {
+                    UpdateHostInfo(onevps)
+                });
+            }else{
+                Run = false;
+            }
+            
+        }else{
+            
+        }
+    })
+}
+
+
+function UpdateHostInfo(onevps){
+    let host =  document.querySelector(`div[host="${onevps.Host}"]`);
+    if (host != null ){
+        host.getElementsByClassName("speed")[0].textContent = onevps.Speed;
+        host.getElementsByClassName("link")[0].textContent = onevps.IDS;
+        host.getElementsByClassName("in")[0].textContent = onevps.Location;
+    }
+}
+
+function SetHostRunningByHost(host){
+    let hostDiv =  document.querySelector(`div[host='${host}']`);
+    if (hostDiv != null){
+        let RunningArea = document.getElementById("running-area");
+        let childN = document.querySelector(".used-route");
+        if (childN != null && childN.getAttribute("host") == host){
+            return;
+        }
+        if (childN != null){
+            childN.classList.remove("used-route");
+            document.getElementById("ready-area").prepend(childN);
+        }
+        hostDiv.classList.add("used-route");
+        RunningArea.appendChild(hostDiv);
+    }
+}
+
+function SetHostRunningByID(id){
+    let hostDiv =  document.querySelector(`div#${id}`);
+    if (hostDiv != null){
+        let RunningArea = document.getElementById("running-area");
+        let childN = RunningArea.childNodes[1];
+        if (childN != null && childN.className.indexOf("used-route")>-1){
+            childN.classList.remove("used-route");
+            document.getElementById("ready-area").prepend(childN);
+        }
+
+        hostDiv.classList.add("used-route");
+        RunningArea.appendChild(hostDiv);
+    }
+}
+
+
+let hSec = window.innerHeight * 0.7 / 52;
+document.querySelectorAll("svg > text").forEach(ele=>{
+ele.setAttribute("font-size", `${hSec}px`);
+})
+window.addEventListener("resize", function() {
+  console.log("Window size: ", window.innerWidth, window.innerHeight);
+  let hSec = window.innerHeight  / 52 ;
+  console.log(`all: ${window.innerHeight * 0.7} single h :${hSec}`)
+  document.querySelectorAll("svg > text").forEach((ele,id)=>{
+    ele.style.fontSize =  `${hSec}px`;
+    ele.setAttribute("y",id*hSec);
+  })
+});
+
+function randomString(n,oldC) {
+  const letters = "ab cd efg hij klm no p q rstuvwxyz";
+  const symbols = "// A       BCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let result = "";
+  if (oldC != null){
+    n = oldC.length;
+  }
+
+  for (let i = 0; i < n; i++) {
+    const charSet = (Math.random() < 0.5) ? letters : symbols;
+    if (oldC != null){
+        // const charSet2 = (Math.random() < 0.5) ? charSet : oldC;
+        if (Math.random()< 0.5){
+            result += oldC.charAt(i);
+        }else{
+            result += charSet.charAt(Math.floor(Math.random() * charSet.length));    
+        }
+
+    }else{
+        result += charSet.charAt(Math.floor(Math.random() * charSet.length));
+
+    }
+  }
+
+  return result;
+}
+
+document.querySelectorAll("text").forEach((ele,no)=>{
+    setTimeout(_=>{
+        setInterval(_=>{
+            if (Run){
+                let ni = Math.floor(Math.random() * 100);
+                let eleOldtext = ele.innerHTML;
+                ele.innerHTML = randomString(ni,eleOldtext);
+            }
+        },1000)
+    }, no * 100);
+})
+Test();
+
+setInterval(_=>{
+    Check();
+}, 1000);
+
+setInterval(_=>{
+    Test();
+}, 120000);
+
+    </script>
+</body>
+</html>

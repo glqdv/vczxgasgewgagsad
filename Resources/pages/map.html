@@ -1,0 +1,2559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Document</title>
+      <style>
+            body {
+        margin: 0;
+        display: grid;
+        height: 100vh;
+        place-items: center;
+        background-color: #000;
+        font-size: 24px;
+      }
+      
+      .container {
+        display: grid;
+        grid-template-columns: repeat(55, 1fr);
+        grid-template-rows: repeat(35, 1fr);
+      }
+      
+      .cell {
+        width: 1em;
+        height: 1em;
+      }
+      .running {
+        animation: bing 5s  infinite linear;
+      }
+      
+      .world {
+        background-color: #222;
+        font-size: 0.5em;
+        border-radius: 50%;
+        /* animation: north-america 4s linear infinite; */
+        animation-delay: -2391ms;
+      }
+
+      .world:hover{
+        cursor: pointer;
+      }
+
+      .btn{
+        color: white;
+        min-width: 100px;
+        min-height: 34px;
+        cursor: pointer;
+        border: 1px solid white;
+        border-radius: 15px;
+        margin: 5px;
+        padding: 1px;
+        align-items: center;
+        display: flex;
+        flex-direction: row;
+        font-size: xx-small;
+      }
+
+      #selected-area{
+        
+        display: flex;
+        /* background-color: #073360; */
+        flex-direction: row;
+        width: 80vh;
+        align-items: center;
+        min-height: 120px;
+        overflow-x: auto;
+      }
+
+      /* #Tokyo , #Singapore {
+        animation: bing 5s linear infinite;
+      } */
+        /* animation:  bing 5s infinite; */
+      /* } */
+    
+      /* #Dallas, #Chicago,   #Sealttle ,   #Silicon-Valley,   #Atlanda, #Los-Angeles{
+        animation: north-america 5s linear infinite; */
+      /* } */ 
+/*  */
+    
+      .north-america-con:hover{
+        background-color:#11f801
+      }
+    
+      @keyframes north-america {
+        0% {
+          background-color: #11f801;
+        }
+        100% {
+          background-color: #222;
+        }
+      }
+      @keyframes south-america {
+        0% {
+          background-color: cyan;
+        }
+        100% {
+          background-color: #222;
+        }
+      }
+      @keyframes africa {
+        0% {
+          background-color: #eaf803;
+        }
+        100% {
+          background-color: #222;
+        }
+      }
+      @keyframes europe {
+        0% {
+          background-color: #f80001;
+        }
+        100% {
+          background-color: #222;
+        }
+      }
+      @keyframes asia {
+        0% {
+          background-color: orange;
+        }
+        100% {
+          background-color: #222;
+        }
+      }
+      @keyframes australia {
+        0% {
+          background-color: #9503c4;
+        }
+        100% {
+          background-color: #222;
+        }
+      }
+
+
+
+      @keyframes bing{
+            0%{
+                box-shadow: 0px 0px 20px 0px #224f7d;
+                background-color: #222;
+            }
+            100% {
+                box-shadow: 0px 0px 20px 10px #224f7d;
+                
+            }
+            25% {
+                /* height: 1.2in;
+                width: 1.2in;
+                border-radius: 0.6in; */
+                background-color: #098500;
+                box-shadow: 0px 0px 30px 30px #144c83;
+            }
+            50% {
+                /* height: 1.4in;
+                width: 1.4in;
+                border-radius: 0.7in; */
+                
+                background-color: #11f801;
+                box-shadow: 0px 0px 60px 60px #073360;
+            }
+            75% {
+                /* height: 1.2in;
+                width: 1.2in;
+                border-radius: 0.6in; */
+                background-color: #098500;
+                box-shadow: 0px 0px 30px 30px #144c83;
+            }
+        }
+        #router{
+            background-color: #073360;
+            position: fixed;
+            left: 8px;
+            display: flex;
+            flex-direction: row;
+            text-align: center;
+            top: 45%;
+            width: 20px;
+            /* height: 100px; */
+            writing-mode: tb-rl;
+            padding: 5px;
+            color: white;
+            align-items: center;
+            border-radius: 1em;
+        }
+      
+        #router:hover{
+            cursor: pointer;
+            color: #000;
+            background-color: white;
+            border: 1px solid white
+        }
+        </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="cell bit-0"></div>
+        <div class="cell bit-1"></div>
+        <div class="cell bit-2"></div>
+        <div class="cell bit-3"></div>
+        <div class="cell bit-4"></div>
+        <div class="cell bit-5"></div>
+        <div class="cell bit-6"></div>
+        <div class="cell bit-7"></div>
+        <div class="cell bit-8"></div>
+        <div class="cell bit-9"></div>
+        <div class="cell bit-10"></div>
+        <div class="cell bit-11"></div>
+        <div class="cell bit-12"></div>
+        <div class="cell bit-13"></div>
+        <div class="cell bit-14"></div>
+        <div class="cell bit-15"></div>
+        <div class="cell bit-16"></div>
+        <div class="cell bit-17"></div>
+        <div class="cell bit-18 world"></div>
+        <div class="cell bit-19 north-america world"></div>
+        <div class="cell bit-20 north-america world"></div>
+        <div class="cell bit-21 north-america"></div>
+        <div class="cell bit-22"></div>
+        <div class="cell bit-23"></div>
+        <div class="cell bit-24"></div>
+        <div class="cell bit-25"></div>
+        <div class="cell bit-26"></div>
+        <div class="cell bit-27"></div>
+        <div class="cell bit-28"></div>
+        <div class="cell bit-29"></div>
+        <div class="cell bit-30"></div>
+        <div class="cell bit-31"></div>
+        <div class="cell bit-32"></div>
+        <div class="cell bit-33"></div>
+        <div class="cell bit-34"></div>
+        <div class="cell bit-35"></div>
+        <div class="cell bit-36"></div>
+        <div class="cell bit-37"></div>
+        <div class="cell bit-38"></div>
+        <div class="cell bit-39"></div>
+        <div class="cell bit-40"></div>
+        <div class="cell bit-41"></div>
+        <div class="cell bit-42"></div>
+        <div class="cell bit-43"></div>
+        <div class="cell bit-44"></div>
+        <div class="cell bit-45"></div>
+        <div class="cell bit-46"></div>
+        <div class="cell bit-47"></div>
+        <div class="cell bit-48"></div>
+        <div class="cell bit-49"></div>
+        <div class="cell bit-50"></div>
+        <div class="cell bit-51"></div>
+        <div class="cell bit-52"></div>
+        <div class="cell bit-53"></div>
+        <div class="cell bit-54"></div>
+        <div class="cell bit-55"></div>
+        <div class="cell bit-56"></div>
+        <div class="cell bit-57"></div>
+        <div class="cell bit-58"></div>
+        <div class="cell bit-59"></div>
+        <div class="cell bit-60"></div>
+        <div class="cell bit-61"></div>
+        <div class="cell bit-62"></div>
+        <div class="cell bit-63"></div>
+        <div class="cell bit-64"></div>
+        <div class="cell bit-65"></div>
+        <div class="cell bit-66"></div>
+        <div class="cell bit-67"></div>
+        <div class="cell bit-68"></div>
+        <div class="cell bit-69"></div>
+        <div class="cell bit-70"></div>
+        <div class="cell bit-71"></div>
+        <div class="cell bit-72 world"></div>
+        <div class="cell bit-73 north-america world"></div>
+        <div class="cell bit-74 north-america world"></div>
+        <div class="cell bit-75 north-america world"></div>
+        <div class="cell bit-76 north-america world"></div>
+        <div class="cell bit-77 north-america"></div>
+        <div class="cell bit-78"></div>
+        <div class="cell bit-79"></div>
+        <div class="cell bit-80"></div>
+        <div class="cell bit-81"></div>
+        <div class="cell bit-82"></div>
+        <div class="cell bit-83"></div>
+        <div class="cell bit-84"></div>
+        <div class="cell bit-85"></div>
+        <div class="cell bit-86"></div>
+        <div class="cell bit-87"></div>
+        <div class="cell bit-88"></div>
+        <div class="cell bit-89"></div>
+        <div class="cell bit-90"></div>
+        <div class="cell bit-91"></div>
+        <div class="cell bit-92"></div>
+        <div class="cell bit-93"></div>
+        <div class="cell bit-94"></div>
+        <div class="cell bit-95"></div>
+        <div class="cell bit-96"></div>
+        <div class="cell bit-97"></div>
+        <div class="cell bit-98"></div>
+        <div class="cell bit-99"></div>
+        <div class="cell bit-100"></div>
+        <div class="cell bit-101"></div>
+        <div class="cell bit-102"></div>
+        <div class="cell bit-103"></div>
+        <div class="cell bit-104"></div>
+        <div class="cell bit-105"></div>
+        <div class="cell bit-106"></div>
+        <div class="cell bit-107"></div>
+        <div class="cell bit-108"></div>
+        <div class="cell bit-109"></div>
+        <div class="cell bit-110"></div>
+        <div class="cell bit-111"></div>
+        <div class="cell bit-112"></div>
+        <div class="cell bit-113"></div>
+        <div class="cell bit-114"></div>
+        <div class="cell bit-115"></div>
+        <div class="cell bit-116"></div>
+        <div class="cell bit-117"></div>
+        <div class="cell bit-118"></div>
+        <div class="cell bit-119"></div>
+        <div class="cell bit-120"></div>
+        <div class="cell bit-121"></div>
+        <div class="cell bit-122 world"></div>
+        <div class="cell bit-123 north-america world"></div>
+        <div class="cell bit-124 north-america"></div>
+        <div class="cell bit-125"></div>
+        <div class="cell bit-126 world"></div>
+        <div class="cell bit-127 north-america world"></div>
+        <div class="cell bit-128 north-america world"></div>
+        <div class="cell bit-129 north-america world"></div>
+        <div class="cell bit-130 north-america world"></div>
+        <div class="cell bit-131 north-america world"></div>
+        <div class="cell bit-132 north-america"></div>
+        <div class="cell bit-133"></div>
+        <div class="cell bit-134"></div>
+        <div class="cell bit-135"></div>
+        <div class="cell bit-136"></div>
+        <div class="cell bit-137"></div>
+        <div class="cell bit-138"></div>
+        <div class="cell bit-139"></div>
+        <div class="cell bit-140"></div>
+        <div class="cell bit-141"></div>
+        <div class="cell bit-142"></div>
+        <div class="cell bit-143"></div>
+        <div class="cell bit-144"></div>
+        <div class="cell bit-145"></div>
+        <div class="cell bit-146"></div>
+        <div class="cell bit-147"></div>
+        <div class="cell bit-148"></div>
+        <div class="cell bit-149"></div>
+        <div class="cell bit-150"></div>
+        <div class="cell bit-151"></div>
+        <div class="cell bit-152"></div>
+        <div class="cell bit-153 world"></div>
+        <div class="cell bit-154 asia"></div>
+        <div class="cell bit-155"></div>
+        <div class="cell bit-156"></div>
+        <div class="cell bit-157"></div>
+        <div class="cell bit-158"></div>
+        <div class="cell bit-159"></div>
+        <div class="cell bit-160"></div>
+        <div class="cell bit-161"></div>
+        <div class="cell bit-162"></div>
+        <div class="cell bit-163"></div>
+        <div class="cell bit-164"></div>
+        <div class="cell bit-165"></div>
+        <div class="cell bit-166"></div>
+        <div class="cell bit-167"></div>
+        <div class="cell bit-168"></div>
+        <div class="cell bit-169"></div>
+        <div class="cell bit-170"></div>
+        <div class="cell bit-171"></div>
+        <div class="cell bit-172"></div>
+        <div class="cell bit-173"></div>
+        <div class="cell bit-174"></div>
+        <div class="cell bit-175"></div>
+        <div class="cell bit-176 world"></div>
+        <div class="cell bit-177 north-america world"></div>
+        <div class="cell bit-178 north-america world"></div>
+        <div class="cell bit-179 north-america"></div>
+        <div class="cell bit-180 world"></div>
+        <div class="cell bit-181 north-america world"></div>
+        <div class="cell bit-182 north-america world"></div>
+        <div class="cell bit-183 north-america world"></div>
+        <div class="cell bit-184 north-america world"></div>
+        <div class="cell bit-185 north-america world"></div>
+        <div class="cell bit-186 north-america world"></div>
+        <div class="cell bit-187 north-america world"></div>
+        <div class="cell bit-188 north-america"></div>
+        <div class="cell bit-189"></div>
+        <div class="cell bit-190"></div>
+        <div class="cell bit-191"></div>
+        <div class="cell bit-192"></div>
+        <div class="cell bit-193"></div>
+        <div class="cell bit-194"></div>
+        <div class="cell bit-195"></div>
+        <div class="cell bit-196"></div>
+        <div class="cell bit-197"></div>
+        <div class="cell bit-198"></div>
+        <div class="cell bit-199"></div>
+        <div class="cell bit-200"></div>
+        <div class="cell bit-201"></div>
+        <div class="cell bit-202"></div>
+        <div class="cell bit-203"></div>
+        <div class="cell bit-204"></div>
+        <div class="cell bit-205"></div>
+        <div class="cell bit-206"></div>
+        <div class="cell bit-207 world"></div>
+        <div class="cell bit-208 asia world"></div>
+        <div class="cell bit-209 asia world"></div>
+        <div class="cell bit-210 asia"></div>
+        <div class="cell bit-211"></div>
+        <div class="cell bit-212"></div>
+        <div class="cell bit-213"></div>
+        <div class="cell bit-214"></div>
+        <div class="cell bit-215"></div>
+        <div class="cell bit-216"></div>
+        <div class="cell bit-217"></div>
+        <div class="cell bit-218"></div>
+        <div class="cell bit-219"></div>
+        <div class="cell bit-220"></div>
+        <div class="cell bit-221"></div>
+        <div class="cell bit-222"></div>
+        <div class="cell bit-223"></div>
+        <div class="cell bit-224"></div>
+        <div class="cell bit-225"></div>
+        <div class="cell bit-226"></div>
+        <div class="cell bit-227 world"></div>
+        <div class="cell bit-228 north-america world"></div>
+        <div class="cell bit-229 north-america world"></div>
+        <div class="cell bit-230 north-america world"></div>
+        <div class="cell bit-231 north-america world"></div>
+        <div class="cell bit-232 north-america world"></div>
+        <div class="cell bit-233 north-america world"></div>
+        <div class="cell bit-234 north-america"></div>
+        <div class="cell bit-235"></div>
+        <div class="cell bit-236 world"></div>
+        <div class="cell bit-237 north-america world"></div>
+        <div class="cell bit-238 north-america world"></div>
+        <div class="cell bit-239 north-america world"></div>
+        <div class="cell bit-240 north-america world"></div>
+        <div class="cell bit-241 north-america world"></div>
+        <div class="cell bit-242 north-america world"></div>
+        <div class="cell bit-243 north-america"></div>
+        <div class="cell bit-244"></div>
+        <div class="cell bit-245"></div>
+        <div class="cell bit-246"></div>
+        <div class="cell bit-247"></div>
+        <div class="cell bit-248"></div>
+        <div class="cell bit-249"></div>
+        <div class="cell bit-250 world"></div>
+        <div class="cell bit-251 europe"></div>
+        <div class="cell bit-252"></div>
+        <div class="cell bit-253"></div>
+        <div class="cell bit-254"></div>
+        <div class="cell bit-255"></div>
+        <div class="cell bit-256"></div>
+        <div class="cell bit-257"></div>
+        <div class="cell bit-258"></div>
+        <div class="cell bit-259"></div>
+        <div class="cell bit-260"></div>
+        <div class="cell bit-261 world"></div>
+        <div class="cell bit-262 asia world"></div>
+        <div class="cell bit-263 asia world"></div>
+        <div class="cell bit-264 asia world"></div>
+        <div class="cell bit-265 asia"></div>
+        <div class="cell bit-266"></div>
+        <div class="cell bit-267"></div>
+        <div class="cell bit-268"></div>
+        <div class="cell bit-269"></div>
+        <div class="cell bit-270"></div>
+        <div class="cell bit-271"></div>
+        <div class="cell bit-272"></div>
+        <div class="cell bit-273"></div>
+        <div class="cell bit-274"></div>
+        <div class="cell bit-275"></div>
+        <div class="cell bit-276"></div>
+        <div class="cell bit-277"></div>
+        <div class="cell bit-278"></div>
+        <div class="cell bit-279"></div>
+        <div class="cell bit-280"></div>
+        <div class="cell bit-281"></div>
+        <div class="cell bit-282 world"></div>
+        <div class="cell bit-283 north-america world"></div>
+        <div class="cell bit-284 north-america world"></div>
+        <div class="cell bit-285 north-america world"></div>
+        <div class="cell bit-286 north-america world"></div>
+        <div class="cell bit-287 north-america world"></div>
+        <div class="cell bit-288 north-america world"></div>
+        <div class="cell bit-289 north-america"></div>
+        <div class="cell bit-290"></div>
+        <div class="cell bit-291"></div>
+        <div class="cell bit-292 world"></div>
+        <div class="cell bit-293 north-america world"></div>
+        <div class="cell bit-294 north-america world"></div>
+        <div class="cell bit-295 north-america world"></div>
+        <div class="cell bit-296 north-america world"></div>
+        <div class="cell bit-297 north-america"></div>
+        <div class="cell bit-298"></div>
+        <div class="cell bit-299"></div>
+        <div class="cell bit-300"></div>
+        <div class="cell bit-301"></div>
+        <div class="cell bit-302"></div>
+        <div class="cell bit-303"></div>
+        <div class="cell bit-304"></div>
+        <div class="cell bit-305"></div>
+        <div class="cell bit-306"></div>
+        <div class="cell bit-307"></div>
+        <div class="cell bit-308"></div>
+        <div class="cell bit-309"></div>
+        <div class="cell bit-310 world"></div>
+        <div class="cell bit-311 europe world"></div>
+        <div class="cell bit-312 europe"></div>
+        <div class="cell bit-313 world"></div>
+        <div class="cell bit-314 asia world"></div>
+        <div class="cell bit-315 asia world"></div>
+        <div class="cell bit-316 asia world"></div>
+        <div class="cell bit-317 asia world"></div>
+        <div class="cell bit-318 asia world"></div>
+        <div class="cell bit-319 asia world"></div>
+        <div class="cell bit-320 asia world"></div>
+        <div class="cell bit-321 asia world"></div>
+        <div class="cell bit-322 asia world"></div>
+        <div class="cell bit-323 asia"></div>
+        <div class="cell bit-324 world"></div>
+        <div class="cell bit-325 asia world"></div>
+        <div class="cell bit-326 asia"></div>
+        <div class="cell bit-327"></div>
+        <div class="cell bit-328"></div>
+        <div class="cell bit-329"></div>
+        <div class="cell bit-330"></div>
+        <div class="cell bit-331 world"></div>
+        <div class="cell bit-332 north-america world"></div>
+        <div class="cell bit-333 north-america world"></div>
+        <div class="cell bit-334 north-america"></div>
+        <div class="cell bit-335"></div>
+        <div class="cell bit-336 world"></div>
+        <div class="cell bit-337 north-america"></div>
+        <div class="cell bit-338 world"></div>
+        <div class="cell bit-339 north-america world"></div>
+        <div class="cell bit-340 north-america world"></div>
+        <div class="cell bit-341 north-america world"></div>
+        <div class="cell bit-342 north-america world"></div>
+        <div class="cell bit-343 north-america"></div>
+        <div class="cell bit-344"></div>
+        <div class="cell bit-345"></div>
+        <div class="cell bit-346"></div>
+        <div class="cell bit-347 world"></div>
+        <div class="cell bit-348 north-america world"></div>
+        <div class="cell bit-349 north-america world"></div>
+        <div class="cell bit-350 north-america world"></div>
+        <div class="cell bit-351 north-america world"></div>
+        <div class="cell bit-352 north-america"></div>
+        <div class="cell bit-353"></div>
+        <div class="cell bit-354"></div>
+        <div class="cell bit-355"></div>
+        <div class="cell bit-356"></div>
+        <div class="cell bit-357"></div>
+        <div class="cell bit-358"></div>
+        <div class="cell bit-359"></div>
+        <div class="cell bit-360 world"></div>
+        <div class="cell bit-361 europe world"></div>
+        <div class="cell bit-362 europe"></div>
+        <div class="cell bit-363"></div>
+        <div class="cell bit-364 world"></div>
+        <div class="cell bit-365 europe"></div>
+        <div class="cell bit-366"></div>
+        <div class="cell bit-367"></div>
+        <div class="cell bit-368 world"></div>
+        <div class="cell bit-369 asia world"></div>
+        <div class="cell bit-370 asia world"></div>
+        <div class="cell bit-371 asia world"></div>
+        <div class="cell bit-372 asia world"></div>
+        <div class="cell bit-373 asia world"></div>
+        <div class="cell bit-374 asia world"></div>
+        <div class="cell bit-375 asia world"></div>
+        <div class="cell bit-376 asia world"></div>
+        <div class="cell bit-377 asia world"></div>
+        <div class="cell bit-378 asia world"></div>
+        <div class="cell bit-379 asia world"></div>
+        <div class="cell bit-380 asia world"></div>
+        <div class="cell bit-381 asia world"></div>
+        <div class="cell bit-382 asia"></div>
+        <div class="cell bit-383"></div>
+        <div class="cell bit-384"></div>
+        <div class="cell bit-385"></div>
+        <div class="cell bit-386 world"></div>
+        <div class="cell bit-387 north-america world"></div>
+        <div class="cell bit-388 north-america world"></div>
+        <div class="cell bit-389 north-america world"></div>
+        <div class="cell bit-390 north-america world"></div>
+        <div class="cell bit-391 north-america world"></div>
+        <div class="cell bit-392 north-america world"></div>
+        <div class="cell bit-393 north-america world"></div>
+        <div class="cell bit-394 north-america world"></div>
+        <div class="cell bit-395 north-america world"></div>
+        <div class="cell bit-396 north-america world"></div>
+        <div class="cell bit-397 north-america world"></div>
+        <div class="cell bit-398 north-america world"></div>
+        <div class="cell bit-399 north-america"></div>
+        <div class="cell bit-400"></div>
+        <div class="cell bit-401"></div>
+        <div class="cell bit-402"></div>
+        <div class="cell bit-403 world"></div>
+        <div class="cell bit-404 north-america world"></div>
+        <div class="cell bit-405 north-america world"></div>
+        <div class="cell bit-406 north-america world"></div>
+        <div class="cell bit-407 north-america"></div>
+        <div class="cell bit-408"></div>
+        <div class="cell bit-409"></div>
+        <div class="cell bit-410"></div>
+        <div class="cell bit-411"></div>
+        <div class="cell bit-412"></div>
+        <div class="cell bit-413"></div>
+        <div class="cell bit-414 world"></div>
+        <div class="cell bit-415 europe world"></div>
+        <div class="cell bit-416 europe world"></div>
+        <div class="cell bit-417 europe world"></div>
+        <div class="cell bit-418 europe"></div>
+        <div class="cell bit-419"></div>
+        <div class="cell bit-420 world"></div>
+        <div class="cell bit-421 europe"></div>
+        <div class="cell bit-422 world"></div>
+        <div class="cell bit-423 asia world"></div>
+        <div class="cell bit-424 asia world"></div>
+        <div class="cell bit-425 asia world"></div>
+        <div class="cell bit-426 asia world"></div>
+        <div class="cell bit-427 asia world"></div>
+        <div class="cell bit-428 asia world"></div>
+        <div class="cell bit-429 asia world"></div>
+        <div class="cell bit-430 asia world"></div>
+        <div class="cell bit-431 asia world"></div>
+        <div class="cell bit-432 asia world"></div>
+        <div class="cell bit-433 asia world"></div>
+        <div class="cell bit-434 asia world"></div>
+        <div class="cell bit-435 asia world"></div>
+        <div class="cell bit-436 asia world"></div>
+        <div class="cell bit-437 asia world"></div>
+        <div class="cell bit-438 asia world"></div>
+        <div class="cell bit-439 asia world"></div>
+        <div class="cell bit-440  world"></div>
+        <div class="cell bit-441 north-america world"></div>
+        <div class="cell bit-442 north-america world"></div>
+        <div class="cell bit-443 north-america world"></div>
+        <div class="cell bit-444 north-america world"></div>
+        <div class="cell bit-445 north-america world"></div>
+        <div class="cell bit-446 north-america world"></div>
+        <div class="cell bit-447 north-america world"></div>
+        <div class="cell bit-448 north-america world"></div>
+        <div class="cell bit-449 north-america world"></div>
+        <div class="cell bit-450 north-america world"></div>
+        <div class="cell bit-451 north-america world"></div>
+        <div class="cell bit-452 north-america world"></div>
+        <div class="cell bit-453 north-america world"></div>
+        <div class="cell bit-454 north-america world"></div>
+        <div class="cell bit-455 north-america"></div>
+        <div class="cell bit-456"></div>
+        <div class="cell bit-457"></div>
+        <div class="cell bit-458 world"></div>
+        <div class="cell bit-459 north-america world"></div>
+        <div class="cell bit-460 north-america"></div>
+        <div class="cell bit-461"></div>
+        <div class="cell bit-462"></div>
+        <div class="cell bit-463"></div>
+        <div class="cell bit-464"></div>
+        <div class="cell bit-465"></div>
+        <div class="cell bit-466"></div>
+        <div class="cell bit-467"></div>
+        <div class="cell bit-468 world"></div>
+        <div class="cell bit-469 europe world"></div>
+        <div class="cell bit-470 europe world"></div>
+        <div class="cell bit-471 europe world"></div>
+        <div class="cell bit-472 europe world"></div>
+        <div class="cell bit-473 europe world"></div>
+        <div class="cell bit-474 europe world"></div>
+        <div class="cell bit-475 europe world"></div>
+        <div class="cell bit-476 europe world"></div>
+        <div class="cell bit-477 europe world"></div>
+        <div class="cell bit-478 asia world"></div>
+        <div class="cell bit-479 asia world"></div>
+        <div class="cell bit-480 asia world"></div>
+        <div class="cell bit-481 asia world"></div>
+        <div class="cell bit-482 asia world"></div>
+        <div class="cell bit-483 asia world"></div>
+        <div class="cell bit-484 asia world"></div>
+        <div class="cell bit-485 asia world"></div>
+        <div class="cell bit-486 asia world"></div>
+        <div class="cell bit-487 asia world"></div>
+        <div class="cell bit-488 asia world"></div>
+        <div class="cell bit-489 asia world"></div>
+        <div class="cell bit-490 asia world"></div>
+        <div class="cell bit-491 asia world"></div>
+        <div class="cell bit-492 asia world"></div>
+        <div class="cell bit-493 asia world"></div>
+        <div class="cell bit-494 asia world"></div>
+        <div class="cell bit-495 asia"></div>
+        <div class="cell bit-496 world"></div>
+        <div class="cell bit-497 north-america world"></div>
+        <div class="cell bit-498 north-america world"></div>
+        <div class="cell bit-499 north-america world"></div>
+        <div class="cell bit-500 north-america world"></div>
+        <div class="cell bit-501 north-america world"></div>
+        <div class="cell bit-502 north-america world"></div>
+        <div class="cell bit-503 north-america world"></div>
+        <div class="cell bit-504 north-america world"></div>
+        <div class="cell bit-505 north-america world"></div>
+        <div class="cell bit-506 north-america world"></div>
+        <div class="cell bit-507 north-america"></div>
+        <div class="cell bit-508 world"></div>
+        <div class="cell bit-509 north-america world"></div>
+        <div class="cell bit-510 north-america world"></div>
+        <div class="cell bit-511 north-america"></div>
+        <div class="cell bit-512"></div>
+        <div class="cell bit-513 world"></div>
+        <div class="cell bit-514 north-america"></div>
+        <div class="cell bit-515"></div>
+        <div class="cell bit-516"></div>
+        <div class="cell bit-517"></div>
+        <div class="cell bit-518 world"></div>
+        <div id="Londong" class="cell bit-519 europe world"></div>
+        <div class="cell bit-520 europe"></div>
+        <div class="cell bit-521"></div>
+        <div class="cell bit-522 world"></div>
+        <div class="cell bit-523 europe world"></div>
+        <div class="cell bit-524 europe world"></div>
+        <div class="cell bit-525 europe"></div>
+        <div class="cell bit-526 world"></div>
+        <div class="cell bit-527 europe world"></div>
+        <div class="cell bit-528 europe world"></div>
+        <div class="cell bit-529 europe world"></div>
+        <div class="cell bit-530 europe world"></div>
+        <div class="cell bit-531 europe world"></div>
+        <div class="cell bit-532 asia world"></div>
+        <div class="cell bit-533 asia world"></div>
+        <div class="cell bit-534 asia world"></div>
+        <div class="cell bit-535 asia world"></div>
+        <div class="cell bit-536 asia world"></div>
+        <div class="cell bit-537 asia world"></div>
+        <div class="cell bit-538 asia world"></div>
+        <div class="cell bit-539 asia world"></div>
+        <div class="cell bit-540 asia world"></div>
+        <div class="cell bit-541 asia world"></div>
+        <div class="cell bit-542 asia world"></div>
+        <div class="cell bit-543 asia world"></div>
+        <div class="cell bit-544 asia world"></div>
+        <div class="cell bit-545 asia world"></div>
+        <div class="cell bit-546 asia world"></div>
+        <div class="cell bit-547 asia world"></div>
+        <div class="cell bit-548 asia world"></div>
+        <div class="cell bit-549 asia world"></div>
+        <div class="cell bit-550 asia"></div>
+        <div class="cell bit-551 world"></div>
+        <div class="cell bit-552 north-america world"></div>
+        <div class="cell bit-553 north-america world"></div>
+        <div class="cell bit-554 north-america world"></div>
+        <div class="cell bit-555 north-america world"></div>
+        <div class="cell bit-556 north-america world"></div>
+        <div class="cell bit-557 north-america world"></div>
+        <div class="cell bit-558 north-america world"></div>
+        <div class="cell bit-559 north-america world"></div>
+        <div class="cell bit-560 north-america world"></div>
+        <div class="cell bit-561 north-america world"></div>
+        <div class="cell bit-562 north-america"></div>
+        <div id="Toronto" class="cell bit-563 world north-america"></div>
+        <div class="cell bit-564 north-america world"></div>
+        <div class="cell bit-565 north-america world"></div>
+        <div class="cell bit-566 north-america"></div>
+        <div class="cell bit-567"></div>
+        <div class="cell bit-568"></div>
+        <div class="cell bit-569"></div>
+        <div class="cell bit-570"></div>
+        <div class="cell bit-571"></div>
+        <div class="cell bit-572"></div>
+        <div class="cell bit-573"></div>
+        <div class="cell bit-574"></div>
+        <div class="cell bit-575"></div>
+        <div class="cell bit-576"></div>
+        <div class="cell bit-577 world"></div>
+        <div class="cell bit-578 europe world"></div>
+        <div class="cell bit-579 europe world"></div>
+        <div class="cell bit-580 europe"></div>
+        <div class="cell bit-581 world"></div>
+        <div class="cell bit-582 europe world"></div>
+        <div class="cell bit-583 europe world"></div>
+        <div class="cell bit-584 europe world"></div>
+        <div class="cell bit-585 europe world"></div>
+        <div class="cell bit-586 europe world"></div>
+        <div class="cell bit-587 asia world"></div>
+        <div class="cell bit-588 asia world"></div>
+        <div class="cell bit-589 asia world"></div>
+        <div class="cell bit-590 asia world"></div>
+        <div class="cell bit-591 asia world"></div>
+        <div class="cell bit-592 asia world"></div>
+        <div class="cell bit-593 asia world"></div>
+        <div class="cell bit-594 asia world"></div>
+        <div class="cell bit-595 asia world"></div>
+        <div class="cell bit-596 asia world"></div>
+        <div class="cell bit-597 asia world"></div>
+        <div class="cell bit-598 asia world"></div>
+        <div class="cell bit-599 asia world"></div>
+        <div class="cell bit-600 asia world"></div>
+        <div class="cell bit-601 asia"></div>
+        <div class="cell bit-602 world"></div>
+        <div class="cell bit-603 asia"></div>
+        <div class="cell bit-604"></div>
+        <div class="cell bit-605"></div>
+        <div class="cell bit-606 world"></div>
+        <div class="cell bit-607 north-america"></div>
+        <div class="cell bit-608"></div>
+        <div class="cell bit-609 world"></div>
+        <div class="cell bit-610 north-america world"></div>
+        <div class="cell bit-611 north-america world"></div>
+        <div class="cell bit-612 north-america world"></div>
+        <div class="cell bit-613 north-america world"></div>
+        <div class="cell bit-614 north-america world"></div>
+        <div class="cell bit-615 north-america world"></div>
+        <div class="cell bit-616 north-america"></div>
+        <div class="cell bit-617"></div>
+        <div class="cell bit-618 world"></div>
+        <div class="cell bit-619 north-america world"></div>
+        <div class="cell bit-620 north-america world"></div>
+        <div class="cell bit-621 north-america world"></div>
+        <div class="cell bit-622 north-america"></div>
+        <div class="cell bit-623"></div>
+        <div class="cell bit-624"></div>
+        <div class="cell bit-625"></div>
+        <div class="cell bit-626"></div>
+        <div class="cell bit-627"></div>
+        <div class="cell bit-628"></div>
+        <div class="cell bit-629"></div>
+        <div class="cell bit-630 world"></div>
+        <div id="Amsterdam" class="cell bit-631 europe world"></div>
+        <div class="cell bit-632 europe"></div>
+        <div class="cell bit-633 world"></div>
+        <div class="cell bit-634 europe"></div>
+        <div class="cell bit-635 world"></div>
+        <div class="cell bit-636 europe world"></div>
+        <div class="cell bit-637 europe world"></div>
+        <div class="cell bit-638 europe world"></div>
+        <div class="cell bit-639 europe world"></div>
+        <div class="cell bit-640 europe world"></div>
+        <div class="cell bit-641 europe world"></div>
+        <div class="cell bit-642 asia world"></div>
+        <div class="cell bit-643 asia world"></div>
+        <div class="cell bit-644 asia world"></div>
+        <div class="cell bit-645 asia world"></div>
+        <div class="cell bit-646 asia world"></div>
+        <div class="cell bit-647 asia world"></div>
+        <div class="cell bit-648 asia world"></div>
+        <div class="cell bit-649 asia world"></div>
+        <div class="cell bit-650 asia world"></div>
+        <div class="cell bit-651 asia world"></div>
+        <div class="cell bit-652 asia world"></div>
+        <div class="cell bit-653 asia world"></div>
+        <div class="cell bit-654 asia"></div>
+        <div class="cell bit-655"></div>
+        <div class="cell bit-656 world"></div>
+        <div class="cell bit-657 asia world"></div>
+        <div class="cell bit-658 asia"></div>
+        <div class="cell bit-659"></div>
+        <div class="cell bit-660"></div>
+        <div class="cell bit-661"></div>
+        <div class="cell bit-662"></div>
+        <div class="cell bit-663"></div>
+        <div class="cell bit-664"></div>
+        <div class="cell bit-665 world"></div>
+        <div class="cell bit-666 north-america world"></div>
+        <div class="cell bit-667 north-america world"></div>
+        <div class="cell bit-668 north-america world"></div>
+        <div class="cell bit-669 north-america world"></div>
+        <div id="Chicago" class="cell bit-670 north-america world"></div>
+        <div class="cell bit-671 north-america world"></div>
+        <div class="cell bit-672 north-america"></div>
+        <div class="cell bit-673 world"></div>
+        <div class="cell bit-674 north-america world"></div>
+        <div class="cell bit-675 north-america world"></div>
+        <div class="cell bit-676 north-america"></div>
+        <div class="cell bit-677"></div>
+        <div class="cell bit-678"></div>
+        <div class="cell bit-679"></div>
+        <div class="cell bit-680"></div>
+        <div class="cell bit-681"></div>
+        <div class="cell bit-682"></div>
+        <div class="cell bit-683"></div>
+        <div class="cell bit-684"></div>
+        <div class="cell bit-685 world"></div>
+        <div class="cell bit-686 europe world"></div>
+        <div id="Paris" class="cell bit-687 europe world"></div>
+        <div class="cell bit-688 europe world"></div>
+        <div class="cell bit-689 europe world"></div>
+        <div class="cell bit-690 europe world"></div>
+        <div class="cell bit-691 europe world"></div>
+        <div class="cell bit-692 europe world"></div>
+        <div class="cell bit-693 europe world"></div>
+        <div class="cell bit-694 europe world"></div>
+        <div class="cell bit-695 europe world"></div>
+        <div class="cell bit-696 europe world"></div>
+        <div class="cell bit-697 asia world"></div>
+        <div class="cell bit-698 asia world"></div>
+        <div class="cell bit-699 asia world"></div>
+        <div class="cell bit-700 asia world"></div>
+        <div class="cell bit-701 asia world"></div>
+        <div class="cell bit-702 asia world"></div>
+        <div class="cell bit-703 asia world"></div>
+        <div class="cell bit-704 asia world"></div>
+        <div class="cell bit-705 asia world"></div>
+        <div class="cell bit-706 asia world"></div>
+        <div class="cell bit-707 asia world"></div>
+        <div class="cell bit-708 asia world"></div>
+        <div class="cell bit-709 asia"></div>
+        <div class="cell bit-710"></div>
+        <div id="Tokyo" class="cell asia bit-711 world"></div>
+        <div class="cell bit-712 asia"></div>
+        <div class="cell bit-713"></div>
+        <div class="cell bit-714"></div>
+        <div class="cell bit-715"></div>
+        <div class="cell bit-716"></div>
+        <div class="cell bit-717"></div>
+        <div class="cell bit-718"></div>
+        <div class="cell bit-719"></div>
+        <div class="cell bit-720"></div>
+        <div id="Seattle" class="cell bit-721 north-america world"></div>
+        <div class="cell bit-722 north-america world"></div>
+        <div class="cell bit-723 north-america world"></div>
+        <div class="cell bit-724 north-america world"></div>
+        <div class="cell bit-725 north-america world"></div>
+        <div class="cell bit-726 north-america world"></div>
+        <div class="cell bit-727 north-america world"></div>
+        <div class="cell bit-728 north-america world"></div>
+        <div class="cell bit-729 north-america world"></div>
+        <div class="cell bit-730 north-america world"></div>
+        <div class="cell bit-731 north-america"></div>
+        <div class="cell bit-732"></div>
+        <div class="cell bit-733"></div>
+        <div class="cell bit-734"></div>
+        <div class="cell bit-735"></div>
+        <div class="cell bit-736"></div>
+        <div class="cell bit-737"></div>
+        <div class="cell bit-738"></div>
+        <div class="cell bit-739"></div>
+        <div class="cell bit-740"></div>
+        <div class="cell bit-741 world"></div>
+        <div class="cell bit-742 europe world"></div>
+        <div class="cell bit-743 europe world"></div>
+        <div class="cell bit-744 europe world"></div>
+        <div id="Frankfurt" class="cell bit-745 europe world"></div>
+        <div class="cell bit-746 europe world"></div>
+        <div class="cell bit-747 europe world"></div>
+        <div class="cell bit-748 europe world"></div>
+        <div class="cell bit-749 europe world"></div>
+        <div class="cell bit-750 europe world"></div>
+        <div class="cell bit-751 europe world"></div>
+        <div class="cell bit-752 asia world"></div>
+        <div class="cell bit-753 asia world"></div>
+        <div class="cell bit-754 asia world"></div>
+        <div class="cell bit-755 asia world"></div>
+        <div class="cell bit-756 asia world"></div>
+        <div class="cell bit-757 asia world"></div>
+        <div class="cell bit-758 asia world"></div>
+        <div class="cell bit-759 asia world"></div>
+        <div class="cell bit-760 asia world"></div>
+        <div class="cell bit-761 asia world"></div>
+        <div class="cell bit-762 asia world"></div>
+        <div id="Seoul" class="cell bit-763 asia world"></div>
+        <div class="cell bit-764 asia"></div>
+        <div class="cell bit-765"></div>
+        <div class="cell bit-766"></div>
+        <div class="cell bit-767"></div>
+        <div class="cell bit-768"></div>
+        <div class="cell bit-769"></div>
+        <div class="cell bit-770"></div>
+        <div class="cell bit-771"></div>
+        <div class="cell bit-772"></div>
+        <div class="cell bit-773"></div>
+        <div class="cell bit-774"></div>
+        <div class="cell bit-775"></div>
+        <div class="cell bit-776"></div>
+        <div class="cell bit-777 world"></div>
+        <div class="cell bit-778 north-america world"></div>
+        <div class="cell bit-779 north-america world"></div>
+        <div class="cell bit-780 north-america world"></div>
+        <div class="cell bit-781 north-america world"></div>
+        <div class="cell bit-782 north-america world"></div>
+        <div class="cell bit-783 north-america world"></div>
+        <div class="cell bit-784 north-america world"></div>
+        <div class="cell bit-785 north-america world"></div>
+        <div class="cell bit-786 north-america"></div>
+        <div class="cell bit-787"></div>
+        <div class="cell bit-788"></div>
+        <div class="cell bit-789"></div>
+        <div class="cell bit-790"></div>
+        <div class="cell bit-791"></div>
+        <div class="cell bit-792"></div>
+        <div class="cell bit-793"></div>
+        <div class="cell bit-794 world"></div>
+        <div class="cell bit-795 europe world"></div>
+        <div class="cell bit-796 europe world"></div>
+        <div class="cell bit-797 europe world"></div>
+        <div class="cell bit-798 europe world"></div>
+        <div class="cell bit-799 europe world"></div>
+        <div class="cell bit-800 europe world"></div>
+        <div class="cell bit-801 europe world"></div>
+        <div class="cell bit-802 europe world"></div>
+        <div class="cell bit-803 europe world"></div>
+        <div class="cell bit-804 europe world"></div>
+        <div class="cell bit-805 europe"></div>
+        <div class="cell bit-806 world"></div>
+        <div class="cell bit-807 asia world"></div>
+        <div class="cell bit-808 asia world"></div>
+        <div class="cell bit-809 asia world"></div>
+        <div class="cell bit-810 asia world"></div>
+        <div class="cell bit-811 asia world"></div>
+        <div class="cell bit-812 asia world"></div>
+        <div class="cell bit-813 asia world"></div>
+        <div class="cell bit-814 asia world"></div>
+        <div class="cell bit-815 asia world"></div>
+        <div class="cell bit-816 asia world"></div>
+        <div class="cell bit-817 asia world"></div>
+        <div class="cell bit-818 asia world"></div>
+        <div class="cell bit-819 asia"></div>
+        <div class="cell bit-820 world"></div>
+        <div class="cell bit-821 asia"></div>
+        <div class="cell bit-822"></div>
+        <div class="cell bit-823"></div>
+        <div class="cell bit-824"></div>
+        <div class="cell bit-825"></div>
+        <div class="cell bit-826"></div>
+        <div class="cell bit-827"></div>
+        <div class="cell bit-828"></div>
+        <div class="cell bit-829"></div>
+        <div class="cell bit-830"></div>
+        <div class="cell bit-831"></div>
+        <div class="cell bit-832"></div>
+        <div class="cell bit-833 world"></div>
+        <div class="cell bit-834 north-america world"></div>
+        <div class="cell bit-835 north-america world"></div>
+        <div class="cell bit-836 north-america world"></div>
+        <div class="cell bit-837 north-america world"></div>
+        <div class="cell bit-838 north-america world"></div>
+        <div class="cell bit-839 north-america"></div>
+        <div class="cell bit-840"></div>
+        <div class="cell bit-841"></div>
+        <div class="cell bit-842"></div>
+        <div class="cell bit-843"></div>
+        <div class="cell bit-844"></div>
+        <div class="cell bit-845"></div>
+        <div class="cell bit-846"></div>
+        <div class="cell bit-847"></div>
+        <div class="cell bit-848"></div>
+        <div class="cell bit-849 world"></div>
+        <div class="cell bit-850 europe world"></div>
+        <div class="cell bit-851 europe"></div>
+        <div class="cell bit-852"></div>
+        <div class="cell bit-853 world"></div>
+        <div class="cell bit-854 europe"></div>
+        <div class="cell bit-855 world"></div>
+        <div class="cell bit-856 europe world"></div>
+        <div class="cell bit-857 europe"></div>
+        <div class="cell bit-858 world"></div>
+        <div class="cell bit-859 asia world"></div>
+        <div class="cell bit-860 asia world"></div>
+        <div class="cell bit-861 asia world"></div>
+        <div class="cell bit-862 asia world"></div>
+        <div class="cell bit-863 asia world"></div>
+        <div class="cell bit-864 asia world"></div>
+        <div class="cell bit-865 asia world"></div>
+        <div class="cell bit-866 asia world"></div>
+        <div class="cell bit-867 asia world"></div>
+        <div class="cell bit-868 asia world"></div>
+        <div class="cell bit-869 asia world"></div>
+        <div class="cell bit-870 asia world"></div>
+        <div class="cell bit-871 asia world"></div>
+        <div class="cell bit-872 asia world"></div>
+        <div class="cell bit-873 asia"></div>
+        <div class="cell bit-874"></div>
+        <div class="cell bit-875 world"></div>
+        <div class="cell bit-876 asia"></div>
+        <div class="cell bit-877"></div>
+        <div class="cell bit-878"></div>
+        <div class="cell bit-879"></div>
+        <div class="cell bit-880"></div>
+        <div class="cell bit-881"></div>
+        <div class="cell bit-882"></div>
+        <div class="cell bit-883"></div>
+        <div class="cell bit-884"></div>
+        <div class="cell bit-885"></div>
+        <div class="cell bit-886"></div>
+        <div class="cell bit-887"></div>
+        <div id="Silicon-Valley" class="cell bit-888 north-america world"></div>
+        <div class="cell bit-889 north-america world"></div>
+        <div id="Dallas" class="cell bit-890 north-america world"></div>
+        <div class="cell bit-891 north-america world"></div>
+        <div id="Atlanta" class="cell bit-892 north-america world"></div>
+        <div class="cell bit-893 north-america world"></div>
+        <div class="cell bit-894 north-america"></div>
+        <div class="cell bit-895"></div>
+        <div class="cell bit-896"></div>
+        <div class="cell bit-897"></div>
+        <div class="cell bit-898"></div>
+        <div class="cell bit-899"></div>
+        <div class="cell bit-900"></div>
+        <div class="cell bit-901"></div>
+        <div class="cell bit-902"></div>
+        <div class="cell bit-903"></div>
+        <div class="cell bit-904"></div>
+        <div class="cell bit-905"></div>
+        <div class="cell bit-906"></div>
+        <div class="cell bit-907"></div>
+        <div class="cell bit-908"></div>
+        <div class="cell bit-909"></div>
+        <div class="cell bit-910 world"></div>
+        <div class="cell bit-911 europe"></div>
+        <div class="cell bit-912 world"></div>
+        <div class="cell bit-913 asia world"></div>
+        <div class="cell bit-914 asia"></div>
+        <div class="cell bit-915 world"></div>
+        <div class="cell bit-916 asia world"></div>
+        <div class="cell bit-917 asia world"></div>
+        <div class="cell bit-918 asia world"></div>
+        <div class="cell bit-919 asia world"></div>
+        <div class="cell bit-920 asia world"></div>
+        <div class="cell bit-921 asia world"></div>
+        <div class="cell bit-922 asia world"></div>
+        <div class="cell bit-923 asia world"></div>
+        <div class="cell bit-924 asia world"></div>
+        <div class="cell bit-925 asia world"></div>
+        <div class="cell bit-926 asia"></div>
+        <div class="cell bit-927 world"></div>
+        <div class="cell bit-928 asia"></div>
+        <div class="cell bit-929 world"></div>
+        <div class="cell bit-930 asia"></div>
+        <div class="cell bit-931"></div>
+        <div class="cell bit-932"></div>
+        <div class="cell bit-933"></div>
+        <div class="cell bit-934"></div>
+        <div class="cell bit-935"></div>
+        <div class="cell bit-936"></div>
+        <div class="cell bit-937"></div>
+        <div class="cell bit-938"></div>
+        <div class="cell bit-939"></div>
+        <div class="cell bit-940"></div>
+        <div class="cell bit-941"></div>
+        <div class="cell bit-942"></div>
+        <div class="cell bit-943 world"></div>
+        <div class="cell bit-944 north-america world"></div>
+        <div class="cell bit-945 north-america world"></div>
+        <div class="cell bit-946 north-america world"></div>
+        <div class="cell bit-947 north-america world"></div>
+        <div class="cell bit-948 north-america world"></div>
+        <div class="cell bit-949 north-america"></div>
+        <div class="cell bit-950"></div>
+        <div class="cell bit-951"></div>
+        <div class="cell bit-952"></div>
+        <div class="cell bit-953"></div>
+        <div class="cell bit-954"></div>
+        <div class="cell bit-955"></div>
+        <div class="cell bit-956"></div>
+        <div class="cell bit-957"></div>
+        <div class="cell bit-958"></div>
+        <div class="cell bit-959"></div>
+        <div class="cell bit-960 world"></div>
+        <div class="cell bit-961 africa world"></div>
+        <div class="cell bit-962 africa world"></div>
+        <div class="cell bit-963 africa"></div>
+        <div class="cell bit-964 world"></div>
+        <div class="cell bit-965 africa"></div>
+        <div class="cell bit-966 world"></div>
+        <div class="cell bit-967 asia world"></div>
+        <div class="cell bit-968 asia world"></div>
+        <div class="cell bit-969 asia world"></div>
+        <div class="cell bit-970 asia"></div>
+        <div class="cell bit-971 world"></div>
+        <div class="cell bit-972 asia world"></div>
+        <div class="cell bit-973 asia world"></div>
+        <div class="cell bit-974 asia world"></div>
+        <div class="cell bit-975 asia world"></div>
+        <div class="cell bit-976 asia world"></div>
+        <div class="cell bit-977 asia world"></div>
+        <div class="cell bit-978 asia world"></div>
+        <div class="cell bit-979 asia world"></div>
+        <div class="cell bit-980 asia world"></div>
+        <div class="cell bit-981 asia world"></div>
+        <div class="cell bit-982 asia"></div>
+        <div class="cell bit-983"></div>
+        <div class="cell bit-984"></div>
+        <div class="cell bit-985"></div>
+        <div class="cell bit-986"></div>
+        <div class="cell bit-987"></div>
+        <div class="cell bit-988"></div>
+        <div class="cell bit-989"></div>
+        <div class="cell bit-990"></div>
+        <div class="cell bit-991"></div>
+        <div class="cell bit-992"></div>
+        <div class="cell bit-993"></div>
+        <div class="cell bit-994"></div>
+        <div class="cell bit-995"></div>
+        <div class="cell bit-996"></div>
+        <div class="cell bit-997"></div>
+        <div class="cell bit-998"></div>
+        <div id="Los-Angeles" class="cell bit-999 world north-america"></div>
+        <div class="cell bit-1000 north-america world"></div>
+        <div class="cell bit-1001 north-america world"></div>
+        <div class="cell bit-1002 north-america"></div>
+        <div class="cell bit-1003"></div>
+        <div class="cell bit-1004 world"></div>
+        <div class="cell bit-1005 north-america"></div>
+        <div class="cell bit-1006"></div>
+        <div class="cell bit-1007"></div>
+        <div class="cell bit-1008"></div>
+        <div class="cell bit-1009"></div>
+        <div class="cell bit-1010"></div>
+        <div class="cell bit-1011"></div>
+        <div class="cell bit-1012"></div>
+        <div class="cell bit-1013"></div>
+        <div class="cell bit-1014 world"></div>
+        <div class="cell bit-1015 africa world"></div>
+        <div class="cell bit-1016 africa world"></div>
+        <div class="cell bit-1017 africa world"></div>
+        <div class="cell bit-1018 africa world"></div>
+        <div class="cell bit-1019 africa world"></div>
+        <div class="cell bit-1020 africa world"></div>
+        <div class="cell bit-1021 africa world"></div>
+        <div class="cell bit-1022 asia world"></div>
+        <div class="cell bit-1023 asia world"></div>
+        <div class="cell bit-1024 asia world"></div>
+        <div class="cell bit-1025 asia world"></div>
+        <div class="cell bit-1026 asia world"></div>
+        <div class="cell bit-1027 asia"></div>
+        <div class="cell bit-1028 world"></div>
+        <div class="cell bit-1029 asia world"></div>
+        <div class="cell bit-1030 asia world"></div>
+        <div class="cell bit-1031 asia"></div>
+        <div class="cell bit-1032"></div>
+        <div class="cell bit-1033 world"></div>
+        <div class="cell bit-1034 asia world"></div>
+        <div class="cell bit-1035 asia world"></div>
+        <div class="cell bit-1036 asia world"></div>
+        <div class="cell bit-1037 asia"></div>
+        <div class="cell bit-1038"></div>
+        <div class="cell bit-1039"></div>
+        <div class="cell bit-1040"></div>
+        <div class="cell bit-1041"></div>
+        <div class="cell bit-1042"></div>
+        <div class="cell bit-1043"></div>
+        <div class="cell bit-1044"></div>
+        <div class="cell bit-1045"></div>
+        <div class="cell bit-1046"></div>
+        <div class="cell bit-1047"></div>
+        <div class="cell bit-1048"></div>
+        <div class="cell bit-1049"></div>
+        <div class="cell bit-1050"></div>
+        <div class="cell bit-1051"></div>
+        <div class="cell bit-1052"></div>
+        <div class="cell bit-1053"></div>
+        <div class="cell bit-1054"></div>
+        <div class="cell bit-1055 world"></div>
+        <div class="cell bit-1056 north-america world"></div>
+        <div class="cell bit-1057 north-america"></div>
+        <div class="cell bit-1058"></div>
+        <div class="cell bit-1059"></div>
+        <div class="cell bit-1060"></div>
+        <div class="cell bit-1061"></div>
+        <div class="cell bit-1062"></div>
+        <div class="cell bit-1063"></div>
+        <div class="cell bit-1064"></div>
+        <div class="cell bit-1065"></div>
+        <div class="cell bit-1066"></div>
+        <div class="cell bit-1067"></div>
+        <div class="cell bit-1068 world"></div>
+        <div class="cell bit-1069 africa world"></div>
+        <div class="cell bit-1070 africa world"></div>
+        <div class="cell bit-1071 africa world"></div>
+        <div class="cell bit-1072 africa world"></div>
+        <div class="cell bit-1073 africa world"></div>
+        <div class="cell bit-1074 africa world"></div>
+        <div class="cell bit-1075 africa world"></div>
+        <div class="cell bit-1076 africa world"></div>
+        <div class="cell bit-1077 africa"></div>
+        <div class="cell bit-1078 world"></div>
+        <div class="cell bit-1079 asia world"></div>
+        <div class="cell bit-1080 asia world"></div>
+        <div class="cell bit-1081 asia"></div>
+        <div class="cell bit-1082"></div>
+        <div class="cell bit-1083"></div>
+        <div class="cell bit-1084 world"></div>
+        <div class="cell bit-1085 asia"></div>
+        <div class="cell bit-1086"></div>
+        <div class="cell bit-1087"></div>
+        <div class="cell bit-1088 world"></div>
+        <div class="cell bit-1089 asia world"></div>
+        <div class="cell bit-1090 asia"></div>
+        <div class="cell bit-1091"></div>
+        <div class="cell bit-1092"></div>
+        <div class="cell bit-1093"></div>
+        <div class="cell bit-1094"></div>
+        <div class="cell bit-1095"></div>
+        <div class="cell bit-1096"></div>
+        <div class="cell bit-1097"></div>
+        <div class="cell bit-1098"></div>
+        <div class="cell bit-1099"></div>
+        <div class="cell bit-1100"></div>
+        <div class="cell bit-1101"></div>
+        <div class="cell bit-1102"></div>
+        <div class="cell bit-1103"></div>
+        <div class="cell bit-1104"></div>
+        <div class="cell bit-1105"></div>
+        <div class="cell bit-1106"></div>
+        <div class="cell bit-1107"></div>
+        <div class="cell bit-1108"></div>
+        <div class="cell bit-1109"></div>
+        <div class="cell bit-1110"></div>
+        <div class="cell bit-1111 world"></div>
+        <div class="cell bit-1112 north-america world"></div>
+        <div class="cell bit-1113 north-america world"></div>
+        <div class="cell bit-1114 north-america"></div>
+        <div class="cell bit-1115"></div>
+        <div class="cell bit-1116"></div>
+        <div class="cell bit-1117"></div>
+        <div class="cell bit-1118"></div>
+        <div class="cell bit-1119"></div>
+        <div class="cell bit-1120"></div>
+        <div class="cell bit-1121"></div>
+        <div class="cell bit-1122"></div>
+        <div class="cell bit-1123 world"></div>
+        <div class="cell bit-1124 africa world"></div>
+        <div class="cell bit-1125 africa world"></div>
+        <div class="cell bit-1126 africa world"></div>
+        <div class="cell bit-1127 africa world"></div>
+        <div class="cell bit-1128 africa world"></div>
+        <div class="cell bit-1129 africa world"></div>
+        <div class="cell bit-1130 africa world"></div>
+        <div class="cell bit-1131 africa world"></div>
+        <div class="cell bit-1132 africa world"></div>
+        <div class="cell bit-1133 africa"></div>
+        <div class="cell bit-1134 world"></div>
+        <div class="cell bit-1135 asia"></div>
+        <div class="cell bit-1136"></div>
+        <div class="cell bit-1137"></div>
+        <div class="cell bit-1138"></div>
+        <div class="cell bit-1139"></div>
+        <div class="cell bit-1140"></div>
+        <div class="cell bit-1141"></div>
+        <div class="cell bit-1142"></div>
+        <div class="cell bit-1143 world"></div>
+        <div class="cell bit-1144 asia world"></div>
+        <div class="cell bit-1145 asia"></div>
+        <div class="cell bit-1146"></div>
+        <div class="cell bit-1147"></div>
+        <div class="cell bit-1148"></div>
+        <div class="cell bit-1149"></div>
+        <div class="cell bit-1150"></div>
+        <div class="cell bit-1151"></div>
+        <div class="cell bit-1152"></div>
+        <div class="cell bit-1153"></div>
+        <div class="cell bit-1154"></div>
+        <div class="cell bit-1155"></div>
+        <div class="cell bit-1156"></div>
+        <div class="cell bit-1157"></div>
+        <div class="cell bit-1158"></div>
+        <div class="cell bit-1159"></div>
+        <div class="cell bit-1160"></div>
+        <div class="cell bit-1161"></div>
+        <div class="cell bit-1162"></div>
+        <div class="cell bit-1163"></div>
+        <div class="cell bit-1164"></div>
+        <div class="cell bit-1165"></div>
+        <div class="cell bit-1166"></div>
+        <div class="cell bit-1167"></div>
+        <div class="cell bit-1168 world"></div>
+        <div class="cell bit-1169 north-america"></div>
+        <div class="cell bit-1170"></div>
+        <div class="cell bit-1171"></div>
+        <div class="cell bit-1172"></div>
+        <div class="cell bit-1173"></div>
+        <div class="cell bit-1174"></div>
+        <div class="cell bit-1175"></div>
+        <div class="cell bit-1176"></div>
+        <div class="cell bit-1177"></div>
+        <div class="cell bit-1178 world"></div>
+        <div class="cell bit-1179 africa world"></div>
+        <div class="cell bit-1180 africa world"></div>
+        <div class="cell bit-1181 africa world"></div>
+        <div class="cell bit-1182 africa world"></div>
+        <div class="cell bit-1183 africa world"></div>
+        <div class="cell bit-1184 africa world"></div>
+        <div class="cell bit-1185 africa world"></div>
+        <div class="cell bit-1186 africa world"></div>
+        <div class="cell bit-1187 africa world"></div>
+        <div class="cell bit-1188 africa world"></div>
+        <div class="cell bit-1189 africa"></div>
+        <div class="cell bit-1190"></div>
+        <div class="cell bit-1191"></div>
+        <div class="cell bit-1192"></div>
+        <div class="cell bit-1193"></div>
+        <div class="cell bit-1194"></div>
+        <div class="cell bit-1195"></div>
+        <div class="cell bit-1196"></div>
+        <div class="cell bit-1197"></div>
+        <div class="cell bit-1198"></div>
+        <div class="cell bit-1199 world"></div>
+        <div class="cell bit-1200 asia"></div>
+        <div class="cell bit-1201 world"></div>
+        <div class="cell bit-1202 asia world"></div>
+        <div class="cell bit-1203 asia"></div>
+        <div class="cell bit-1204"></div>
+        <div class="cell bit-1205 world"></div>
+        <div class="cell bit-1206 australia"></div>
+        <div class="cell bit-1207"></div>
+        <div class="cell bit-1208"></div>
+        <div class="cell bit-1209"></div>
+        <div class="cell bit-1210"></div>
+        <div class="cell bit-1211"></div>
+        <div class="cell bit-1212"></div>
+        <div class="cell bit-1213"></div>
+        <div class="cell bit-1214"></div>
+        <div class="cell bit-1215"></div>
+        <div class="cell bit-1216"></div>
+        <div class="cell bit-1217"></div>
+        <div class="cell bit-1218"></div>
+        <div class="cell bit-1219"></div>
+        <div class="cell bit-1220"></div>
+        <div class="cell bit-1221"></div>
+        <div class="cell bit-1222"></div>
+        <div class="cell bit-1223"></div>
+        <div class="cell bit-1224 world"></div>
+        <div class="cell bit-1225 south-america world"></div>
+        <div class="cell bit-1226 south-america world"></div>
+        <div class="cell bit-1227 south-america world"></div>
+        <div class="cell bit-1228 south-america world"></div>
+        <div class="cell bit-1229 south-america"></div>
+        <div class="cell bit-1230"></div>
+        <div class="cell bit-1231"></div>
+        <div class="cell bit-1232"></div>
+        <div class="cell bit-1233"></div>
+        <div class="cell bit-1234 world"></div>
+        <div class="cell bit-1235 africa world"></div>
+        <div class="cell bit-1236 africa world"></div>
+        <div class="cell bit-1237 africa world"></div>
+        <div class="cell bit-1238 africa world"></div>
+        <div class="cell bit-1239 africa world"></div>
+        <div class="cell bit-1240 africa world"></div>
+        <div class="cell bit-1241 africa world"></div>
+        <div class="cell bit-1242 africa world"></div>
+        <div class="cell bit-1243 africa world"></div>
+        <div class="cell bit-1244 africa"></div>
+        <div class="cell bit-1245"></div>
+        <div class="cell bit-1246"></div>
+        <div class="cell bit-1247"></div>
+        <div class="cell bit-1248"></div>
+        <div class="cell bit-1249"></div>
+        <div class="cell bit-1250"></div>
+        <div class="cell bit-1251"></div>
+        <div class="cell bit-1252"></div>
+        <div class="cell bit-1253"></div>
+        <div id="Singapore" class="cell asia bit-1254 world"></div>
+        <div class="cell bit-1255 asia world"></div>
+        <div class="cell bit-1256 asia world"></div>
+        <div class="cell bit-1257 asia"></div>
+        <div class="cell bit-1258"></div>
+        <div class="cell bit-1259"></div>
+        <div class="cell bit-1260"></div>
+        <div class="cell bit-1261 world"></div>
+        <div class="cell bit-1262 australia world"></div>
+        <div class="cell bit-1263 australia"></div>
+        <div class="cell bit-1264"></div>
+        <div class="cell bit-1265"></div>
+        <div class="cell bit-1266"></div>
+        <div class="cell bit-1267"></div>
+        <div class="cell bit-1268"></div>
+        <div class="cell bit-1269"></div>
+        <div class="cell bit-1270"></div>
+        <div class="cell bit-1271"></div>
+        <div class="cell bit-1272"></div>
+        <div class="cell bit-1273"></div>
+        <div class="cell bit-1274"></div>
+        <div class="cell bit-1275"></div>
+        <div class="cell bit-1276"></div>
+        <div class="cell bit-1277"></div>
+        <div class="cell bit-1278"></div>
+        <div class="cell bit-1279"></div>
+        <div class="cell bit-1280 world"></div>
+        <div class="cell bit-1281 south-america world"></div>
+        <div class="cell bit-1282 south-america world"></div>
+        <div class="cell bit-1283 south-america world"></div>
+        <div class="cell bit-1284 south-america world"></div>
+        <div class="cell bit-1285 south-america"></div>
+        <div class="cell bit-1286"></div>
+        <div class="cell bit-1287"></div>
+        <div class="cell bit-1288"></div>
+        <div class="cell bit-1289"></div>
+        <div class="cell bit-1290"></div>
+        <div class="cell bit-1291"></div>
+        <div class="cell bit-1292 world"></div>
+        <div class="cell bit-1293 africa world"></div>
+        <div class="cell bit-1294 africa world"></div>
+        <div class="cell bit-1295 africa world"></div>
+        <div class="cell bit-1296 africa world"></div>
+        <div class="cell bit-1297 africa world"></div>
+        <div class="cell bit-1298 africa"></div>
+        <div class="cell bit-1299"></div>
+        <div class="cell bit-1300"></div>
+        <div class="cell bit-1301"></div>
+        <div class="cell bit-1302"></div>
+        <div class="cell bit-1303"></div>
+        <div class="cell bit-1304"></div>
+        <div class="cell bit-1305"></div>
+        <div class="cell bit-1306"></div>
+        <div class="cell bit-1307"></div>
+        <div class="cell bit-1308"></div>
+        <div class="cell bit-1309"></div>
+        <div class="cell bit-1310 world"></div>
+        <div class="cell bit-1311 asia"></div>
+        <div class="cell bit-1312"></div>
+        <div class="cell bit-1313"></div>
+        <div class="cell bit-1314"></div>
+        <div class="cell bit-1315"></div>
+        <div class="cell bit-1316 world"></div>
+        <div class="cell bit-1317 australia"></div>
+        <div class="cell bit-1318"></div>
+        <div class="cell bit-1319"></div>
+        <div class="cell bit-1320"></div>
+        <div class="cell bit-1321"></div>
+        <div class="cell bit-1322"></div>
+        <div class="cell bit-1323"></div>
+        <div class="cell bit-1324"></div>
+        <div class="cell bit-1325"></div>
+        <div class="cell bit-1326"></div>
+        <div class="cell bit-1327"></div>
+        <div class="cell bit-1328"></div>
+        <div class="cell bit-1329"></div>
+        <div class="cell bit-1330"></div>
+        <div class="cell bit-1331"></div>
+        <div class="cell bit-1332"></div>
+        <div class="cell bit-1333"></div>
+        <div class="cell bit-1334 world"></div>
+        <div class="cell bit-1335 south-america world"></div>
+        <div class="cell bit-1336 south-america world"></div>
+        <div class="cell bit-1337 south-america world"></div>
+        <div class="cell bit-1338 south-america world"></div>
+        <div class="cell bit-1339 south-america world"></div>
+        <div class="cell bit-1340 south-america world"></div>
+        <div class="cell bit-1341 south-america world"></div>
+        <div class="cell bit-1342 south-america"></div>
+        <div class="cell bit-1343"></div>
+        <div class="cell bit-1344"></div>
+        <div class="cell bit-1345"></div>
+        <div class="cell bit-1346"></div>
+        <div class="cell bit-1347 world"></div>
+        <div class="cell bit-1348 africa world"></div>
+        <div class="cell bit-1349 africa world"></div>
+        <div class="cell bit-1350 africa world"></div>
+        <div class="cell bit-1351 africa world"></div>
+        <div class="cell bit-1352 africa"></div>
+        <div class="cell bit-1353"></div>
+        <div class="cell bit-1354"></div>
+        <div class="cell bit-1355"></div>
+        <div class="cell bit-1356"></div>
+        <div class="cell bit-1357"></div>
+        <div class="cell bit-1358"></div>
+        <div class="cell bit-1359"></div>
+        <div class="cell bit-1360"></div>
+        <div class="cell bit-1361"></div>
+        <div class="cell bit-1362"></div>
+        <div class="cell bit-1363"></div>
+        <div class="cell bit-1364"></div>
+        <div class="cell bit-1365"></div>
+        <div class="cell bit-1366"></div>
+        <div class="cell bit-1367"></div>
+        <div class="cell bit-1368 world"></div>
+        <div class="cell bit-1369 australia world"></div>
+        <div class="cell bit-1370 australia"></div>
+        <div class="cell bit-1371 world"></div>
+        <div class="cell bit-1372 australia"></div>
+        <div class="cell bit-1373"></div>
+        <div class="cell bit-1374"></div>
+        <div class="cell bit-1375"></div>
+        <div class="cell bit-1376"></div>
+        <div class="cell bit-1377"></div>
+        <div class="cell bit-1378"></div>
+        <div class="cell bit-1379"></div>
+        <div class="cell bit-1380"></div>
+        <div class="cell bit-1381"></div>
+        <div class="cell bit-1382"></div>
+        <div class="cell bit-1383"></div>
+        <div class="cell bit-1384"></div>
+        <div class="cell bit-1385"></div>
+        <div class="cell bit-1386"></div>
+        <div class="cell bit-1387"></div>
+        <div class="cell bit-1388"></div>
+        <div class="cell bit-1389 world"></div>
+        <div class="cell bit-1390 south-america world"></div>
+        <div class="cell bit-1391 south-america world"></div>
+        <div class="cell bit-1392 south-america world"></div>
+        <div class="cell bit-1393 south-america world"></div>
+        <div class="cell bit-1394 south-america world"></div>
+        <div class="cell bit-1395 south-america world"></div>
+        <div class="cell bit-1396 south-america world"></div>
+        <div class="cell bit-1397 south-america"></div>
+        <div class="cell bit-1398"></div>
+        <div class="cell bit-1399"></div>
+        <div class="cell bit-1400"></div>
+        <div class="cell bit-1401"></div>
+        <div class="cell bit-1402"></div>
+        <div class="cell bit-1403 world"></div>
+        <div class="cell bit-1404 africa world"></div>
+        <div class="cell bit-1405 africa world"></div>
+        <div class="cell bit-1406 africa world"></div>
+        <div class="cell bit-1407 africa"></div>
+        <div class="cell bit-1408"></div>
+        <div class="cell bit-1409"></div>
+        <div class="cell bit-1410"></div>
+        <div class="cell bit-1411"></div>
+        <div class="cell bit-1412"></div>
+        <div class="cell bit-1413"></div>
+        <div class="cell bit-1414"></div>
+        <div class="cell bit-1415"></div>
+        <div class="cell bit-1416"></div>
+        <div class="cell bit-1417"></div>
+        <div class="cell bit-1418"></div>
+        <div class="cell bit-1419"></div>
+        <div class="cell bit-1420"></div>
+        <div class="cell bit-1421 world"></div>
+        <div class="cell bit-1422 australia world"></div>
+        <div class="cell bit-1423 australia world"></div>
+        <div class="cell bit-1424 australia world"></div>
+        <div class="cell bit-1425 australia world"></div>
+        <div class="cell bit-1426 australia world"></div>
+        <div class="cell bit-1427 australia world"></div>
+        <div class="cell bit-1428 australia"></div>
+        <div class="cell bit-1429"></div>
+        <div class="cell bit-1430"></div>
+        <div class="cell bit-1431"></div>
+        <div class="cell bit-1432"></div>
+        <div class="cell bit-1433"></div>
+        <div class="cell bit-1434"></div>
+        <div class="cell bit-1435"></div>
+        <div class="cell bit-1436"></div>
+        <div class="cell bit-1437"></div>
+        <div class="cell bit-1438"></div>
+        <div class="cell bit-1439"></div>
+        <div class="cell bit-1440"></div>
+        <div class="cell bit-1441"></div>
+        <div class="cell bit-1442"></div>
+        <div class="cell bit-1443"></div>
+        <div class="cell bit-1444"></div>
+        <div class="cell bit-1445 world"></div>
+        <div class="cell bit-1446 south-america world"></div>
+        <div class="cell bit-1447 south-america world"></div>
+        <div class="cell bit-1448 south-america world"></div>
+        <div class="cell bit-1449 south-america world"></div>
+        <div class="cell bit-1450 south-america world"></div>
+        <div class="cell bit-1451 south-america"></div>
+        <div class="cell bit-1452"></div>
+        <div class="cell bit-1453"></div>
+        <div class="cell bit-1454"></div>
+        <div class="cell bit-1455"></div>
+        <div class="cell bit-1456"></div>
+        <div class="cell bit-1457"></div>
+        <div class="cell bit-1458 world"></div>
+        <div class="cell bit-1459 africa world"></div>
+        <div class="cell bit-1460 africa world"></div>
+        <div class="cell bit-1461 africa world"></div>
+        <div class="cell bit-1462 africa"></div>
+        <div class="cell bit-1463"></div>
+        <div class="cell bit-1464"></div>
+        <div class="cell bit-1465"></div>
+        <div class="cell bit-1466"></div>
+        <div class="cell bit-1467"></div>
+        <div class="cell bit-1468"></div>
+        <div class="cell bit-1469"></div>
+        <div class="cell bit-1470"></div>
+        <div class="cell bit-1471"></div>
+        <div class="cell bit-1472"></div>
+        <div class="cell bit-1473"></div>
+        <div class="cell bit-1474"></div>
+        <div class="cell bit-1475 world"></div>
+        <div class="cell bit-1476 australia world"></div>
+        <div class="cell bit-1477 australia world"></div>
+        <div class="cell bit-1478 australia world"></div>
+        <div class="cell bit-1479 australia world"></div>
+        <div class="cell bit-1480 australia world"></div>
+        <div class="cell bit-1481 australia world"></div>
+        <div id="Sydney" class="cell bit-1482 australia world"></div>
+        <div class="cell bit-1483 australia"></div>
+        <div class="cell bit-1484"></div>
+        <div class="cell bit-1485"></div>
+        <div class="cell bit-1486"></div>
+        <div class="cell bit-1487"></div>
+        <div class="cell bit-1488"></div>
+        <div class="cell bit-1489"></div>
+        <div class="cell bit-1490"></div>
+        <div class="cell bit-1491"></div>
+        <div class="cell bit-1492"></div>
+        <div class="cell bit-1493"></div>
+        <div class="cell bit-1494"></div>
+        <div class="cell bit-1495"></div>
+        <div class="cell bit-1496"></div>
+        <div class="cell bit-1497"></div>
+        <div class="cell bit-1498"></div>
+        <div class="cell bit-1499"></div>
+        <div class="cell bit-1500"></div>
+        <div class="cell bit-1501 world"></div>
+        <div class="cell bit-1502 south-america world"></div>
+        <div class="cell bit-1503 south-america world"></div>
+        <div class="cell bit-1504 south-america world"></div>
+        <div class="cell bit-1505 south-america world"></div>
+        <div class="cell bit-1506 south-america"></div>
+        <div class="cell bit-1507"></div>
+        <div class="cell bit-1508"></div>
+        <div class="cell bit-1509"></div>
+        <div class="cell bit-1510"></div>
+        <div class="cell bit-1511"></div>
+        <div class="cell bit-1512"></div>
+        <div class="cell bit-1513 world"></div>
+        <div class="cell bit-1514 africa world"></div>
+        <div class="cell bit-1515 africa world"></div>
+        <div class="cell bit-1516 africa"></div>
+        <div class="cell bit-1517 world"></div>
+        <div class="cell bit-1518 africa"></div>
+        <div class="cell bit-1519"></div>
+        <div class="cell bit-1520"></div>
+        <div class="cell bit-1521"></div>
+        <div class="cell bit-1522"></div>
+        <div class="cell bit-1523"></div>
+        <div class="cell bit-1524"></div>
+        <div class="cell bit-1525"></div>
+        <div class="cell bit-1526"></div>
+        <div class="cell bit-1527"></div>
+        <div class="cell bit-1528"></div>
+        <div class="cell bit-1529"></div>
+        <div class="cell bit-1530 world"></div>
+        <div class="cell bit-1531 australia world"></div>
+        <div class="cell bit-1532 australia world"></div>
+        <div class="cell bit-1533 australia world"></div>
+        <div class="cell bit-1534 australia world"></div>
+        <div class="cell bit-1535 australia world"></div>
+        <div class="cell bit-1536 australia world"></div>
+        <div class="cell bit-1537 australia world"></div>
+        <div class="cell bit-1538 australia"></div>
+        <div class="cell bit-1539"></div>
+        <div class="cell bit-1540"></div>
+        <div class="cell bit-1541"></div>
+        <div class="cell bit-1542"></div>
+        <div class="cell bit-1543"></div>
+        <div class="cell bit-1544"></div>
+        <div class="cell bit-1545"></div>
+        <div class="cell bit-1546"></div>
+        <div class="cell bit-1547"></div>
+        <div class="cell bit-1548"></div>
+        <div class="cell bit-1549"></div>
+        <div class="cell bit-1550"></div>
+        <div class="cell bit-1551"></div>
+        <div class="cell bit-1552"></div>
+        <div class="cell bit-1553"></div>
+        <div class="cell bit-1554"></div>
+        <div class="cell bit-1555"></div>
+        <div class="cell bit-1556 world"></div>
+        <div class="cell bit-1557 south-america world"></div>
+        <div class="cell bit-1558 south-america world"></div>
+        <div class="cell bit-1559 south-america world"></div>
+        <div class="cell bit-1560 south-america"></div>
+        <div class="cell bit-1561"></div>
+        <div class="cell bit-1562"></div>
+        <div class="cell bit-1563"></div>
+        <div class="cell bit-1564"></div>
+        <div class="cell bit-1565"></div>
+        <div class="cell bit-1566"></div>
+        <div class="cell bit-1567"></div>
+        <div class="cell bit-1568 world"></div>
+        <div class="cell bit-1569 africa world"></div>
+        <div class="cell bit-1570 africa world"></div>
+        <div class="cell bit-1571 africa"></div>
+        <div class="cell bit-1572 world"></div>
+        <div class="cell bit-1573 africa"></div>
+        <div class="cell bit-1574"></div>
+        <div class="cell bit-1575"></div>
+        <div class="cell bit-1576"></div>
+        <div class="cell bit-1577"></div>
+        <div class="cell bit-1578"></div>
+        <div class="cell bit-1579"></div>
+        <div class="cell bit-1580"></div>
+        <div class="cell bit-1581"></div>
+        <div class="cell bit-1582"></div>
+        <div class="cell bit-1583"></div>
+        <div class="cell bit-1584"></div>
+        <div class="cell bit-1585 world"></div>
+        <div class="cell bit-1586 australia world"></div>
+        <div class="cell bit-1587 australia"></div>
+        <div class="cell bit-1588"></div>
+        <div class="cell bit-1589 world"></div>
+        <div class="cell bit-1590 australia world"></div>
+        <div class="cell bit-1591 australia world"></div>
+        <div class="cell bit-1592 australia"></div>
+        <div class="cell bit-1593"></div>
+        <div class="cell bit-1594"></div>
+        <div class="cell bit-1595"></div>
+        <div class="cell bit-1596"></div>
+        <div class="cell bit-1597"></div>
+        <div class="cell bit-1598"></div>
+        <div class="cell bit-1599"></div>
+        <div class="cell bit-1600"></div>
+        <div class="cell bit-1601"></div>
+        <div class="cell bit-1602"></div>
+        <div class="cell bit-1603"></div>
+        <div class="cell bit-1604"></div>
+        <div class="cell bit-1605"></div>
+        <div class="cell bit-1606"></div>
+        <div class="cell bit-1607"></div>
+        <div class="cell bit-1608"></div>
+        <div class="cell bit-1609"></div>
+        <div class="cell bit-1610"></div>
+        <div id="Santiago" class="cell bit-1611 south-america world"></div>
+        <div class="cell bit-1612 south-america world"></div>
+        <div class="cell bit-1613 south-america world"></div>
+        <div class="cell bit-1614 south-america"></div>
+        <div class="cell bit-1615"></div>
+        <div class="cell bit-1616"></div>
+        <div class="cell bit-1617"></div>
+        <div class="cell bit-1618"></div>
+        <div class="cell bit-1619"></div>
+        <div class="cell bit-1620"></div>
+        <div class="cell bit-1621"></div>
+        <div class="cell bit-1622"></div>
+        <div class="cell bit-1623 world"></div>
+        <div class="cell bit-1624 africa world"></div>
+        <div class="cell bit-1625 africa"></div>
+        <div class="cell bit-1626"></div>
+        <div class="cell bit-1627"></div>
+        <div class="cell bit-1628"></div>
+        <div class="cell bit-1629"></div>
+        <div class="cell bit-1630"></div>
+        <div class="cell bit-1631"></div>
+        <div class="cell bit-1632"></div>
+        <div class="cell bit-1633"></div>
+        <div class="cell bit-1634"></div>
+        <div class="cell bit-1635"></div>
+        <div class="cell bit-1636"></div>
+        <div class="cell bit-1637"></div>
+        <div class="cell bit-1638"></div>
+        <div class="cell bit-1639"></div>
+        <div class="cell bit-1640"></div>
+        <div class="cell bit-1641"></div>
+        <div class="cell bit-1642"></div>
+        <div class="cell bit-1643"></div>
+        <div class="cell bit-1644 world"></div>
+        <div class="cell bit-1645 australia world"></div>
+        <div class="cell bit-1646 australia"></div>
+        <div class="cell bit-1647"></div>
+        <div class="cell bit-1648"></div>
+        <div class="cell bit-1649 world"></div>
+        <div class="cell bit-1650 australia"></div>
+        <div class="cell bit-1651"></div>
+        <div class="cell bit-1652"></div>
+        <div class="cell bit-1653"></div>
+        <div class="cell bit-1654"></div>
+        <div class="cell bit-1655"></div>
+        <div class="cell bit-1656"></div>
+        <div class="cell bit-1657"></div>
+        <div class="cell bit-1658"></div>
+        <div class="cell bit-1659"></div>
+        <div class="cell bit-1660"></div>
+        <div class="cell bit-1661"></div>
+        <div class="cell bit-1662"></div>
+        <div class="cell bit-1663"></div>
+        <div class="cell bit-1664"></div>
+        <div class="cell bit-1665 world"></div>
+        <div class="cell bit-1666 south-america world"></div>
+        <div class="cell bit-1667 south-america world"></div>
+        <div class="cell bit-1668 south-america"></div>
+        <div class="cell bit-1669"></div>
+        <div class="cell bit-1670"></div>
+        <div class="cell bit-1671"></div>
+        <div class="cell bit-1672"></div>
+        <div class="cell bit-1673"></div>
+        <div class="cell bit-1674"></div>
+        <div class="cell bit-1675"></div>
+        <div class="cell bit-1676"></div>
+        <div class="cell bit-1677"></div>
+        <div class="cell bit-1678"></div>
+        <div class="cell bit-1679"></div>
+        <div class="cell bit-1680"></div>
+        <div class="cell bit-1681"></div>
+        <div class="cell bit-1682"></div>
+        <div class="cell bit-1683"></div>
+        <div class="cell bit-1684"></div>
+        <div class="cell bit-1685"></div>
+        <div class="cell bit-1686"></div>
+        <div class="cell bit-1687"></div>
+        <div class="cell bit-1688"></div>
+        <div class="cell bit-1689"></div>
+        <div class="cell bit-1690"></div>
+        <div class="cell bit-1691"></div>
+        <div class="cell bit-1692"></div>
+        <div class="cell bit-1693"></div>
+        <div class="cell bit-1694"></div>
+        <div class="cell bit-1695"></div>
+        <div class="cell bit-1696"></div>
+        <div class="cell bit-1697"></div>
+        <div class="cell bit-1698"></div>
+        <div class="cell bit-1699"></div>
+        <div class="cell bit-1700"></div>
+        <div class="cell bit-1701"></div>
+        <div class="cell bit-1702"></div>
+        <div class="cell bit-1703"></div>
+        <div class="cell bit-1704 world"></div>
+        <div class="cell bit-1705 australia"></div>
+        <div class="cell bit-1706"></div>
+        <div class="cell bit-1707"></div>
+        <div class="cell bit-1708"></div>
+        <div class="cell bit-1709"></div>
+        <div class="cell bit-1710"></div>
+        <div class="cell bit-1711"></div>
+        <div class="cell bit-1712"></div>
+        <div class="cell bit-1713"></div>
+        <div class="cell bit-1714"></div>
+        <div class="cell bit-1715"></div>
+        <div class="cell bit-1716"></div>
+        <div class="cell bit-1717"></div>
+        <div class="cell bit-1718"></div>
+        <div class="cell bit-1719"></div>
+        <div class="cell bit-1720 world"></div>
+        <div class="cell bit-1721 south-america world"></div>
+        <div class="cell bit-1722 south-america"></div>
+        <div class="cell bit-1723"></div>
+        <div class="cell bit-1724"></div>
+        <div class="cell bit-1725"></div>
+        <div class="cell bit-1726"></div>
+        <div class="cell bit-1727"></div>
+        <div class="cell bit-1728"></div>
+        <div class="cell bit-1729"></div>
+        <div class="cell bit-1730"></div>
+        <div class="cell bit-1731"></div>
+        <div class="cell bit-1732"></div>
+        <div class="cell bit-1733"></div>
+        <div class="cell bit-1734"></div>
+        <div class="cell bit-1735"></div>
+        <div class="cell bit-1736"></div>
+        <div class="cell bit-1737"></div>
+        <div class="cell bit-1738"></div>
+        <div class="cell bit-1739"></div>
+        <div class="cell bit-1740"></div>
+        <div class="cell bit-1741"></div>
+        <div class="cell bit-1742"></div>
+        <div class="cell bit-1743"></div>
+        <div class="cell bit-1744"></div>
+        <div class="cell bit-1745"></div>
+        <div class="cell bit-1746"></div>
+        <div class="cell bit-1747"></div>
+        <div class="cell bit-1748"></div>
+        <div class="cell bit-1749"></div>
+        <div class="cell bit-1750"></div>
+        <div class="cell bit-1751"></div>
+        <div class="cell bit-1752"></div>
+        <div class="cell bit-1753"></div>
+        <div class="cell bit-1754"></div>
+        <div class="cell bit-1755"></div>
+        <div class="cell bit-1756"></div>
+        <div class="cell bit-1757"></div>
+        <div class="cell bit-1758"></div>
+        <div class="cell bit-1759"></div>
+        <div class="cell bit-1760"></div>
+        <div class="cell bit-1761"></div>
+        <div class="cell bit-1762"></div>
+        <div class="cell bit-1763"></div>
+        <div class="cell bit-1764"></div>
+        <div class="cell bit-1765"></div>
+        <div class="cell bit-1766"></div>
+        <div class="cell bit-1767"></div>
+        <div class="cell bit-1768"></div>
+        <div class="cell bit-1769"></div>
+        <div class="cell bit-1770"></div>
+        <div class="cell bit-1771"></div>
+        <div class="cell bit-1772"></div>
+        <div class="cell bit-1773"></div>
+        <div class="cell bit-1774"></div>
+        <div class="cell bit-1775 world"></div>
+        <div class="cell bit-1776 south-america world"></div>
+        <div class="cell bit-1777 south-america"></div>
+        <div class="cell bit-1778"></div>
+        <div class="cell bit-1779"></div>
+        <div class="cell bit-1780"></div>
+        <div class="cell bit-1781"></div>
+        <div class="cell bit-1782"></div>
+        <div class="cell bit-1783"></div>
+        <div class="cell bit-1784"></div>
+        <div class="cell bit-1785"></div>
+        <div class="cell bit-1786"></div>
+        <div class="cell bit-1787"></div>
+        <div class="cell bit-1788"></div>
+        <div class="cell bit-1789"></div>
+        <div class="cell bit-1790"></div>
+        <div class="cell bit-1791"></div>
+        <div class="cell bit-1792"></div>
+        <div class="cell bit-1793"></div>
+        <div class="cell bit-1794"></div>
+        <div class="cell bit-1795"></div>
+        <div class="cell bit-1796"></div>
+        <div class="cell bit-1797"></div>
+        <div class="cell bit-1798"></div>
+        <div class="cell bit-1799"></div>
+        <div class="cell bit-1800"></div>
+        <div class="cell bit-1801"></div>
+        <div class="cell bit-1802"></div>
+        <div class="cell bit-1803"></div>
+        <div class="cell bit-1804"></div>
+        <div class="cell bit-1805"></div>
+        <div class="cell bit-1806"></div>
+        <div class="cell bit-1807"></div>
+        <div class="cell bit-1808"></div>
+        <div class="cell bit-1809"></div>
+        <div class="cell bit-1810"></div>
+        <div class="cell bit-1811"></div>
+        <div class="cell bit-1812"></div>
+        <div class="cell bit-1813"></div>
+        <div class="cell bit-1814"></div>
+        <div class="cell bit-1815"></div>
+        <div class="cell bit-1816"></div>
+        <div class="cell bit-1817"></div>
+        <div class="cell bit-1818"></div>
+        <div class="cell bit-1819"></div>
+        <div class="cell bit-1820"></div>
+        <div class="cell bit-1821"></div>
+        <div class="cell bit-1822"></div>
+        <div class="cell bit-1823"></div>
+        <div class="cell bit-1824"></div>
+        <div class="cell bit-1825"></div>
+        <div class="cell bit-1826"></div>
+        <div class="cell bit-1827"></div>
+        <div class="cell bit-1828"></div>
+        <div class="cell bit-1829"></div>
+        <div class="cell bit-1830 world"></div>
+        <div class="cell bit-1831 south-america world"></div>
+        <div class="cell bit-1832 south-america"></div>
+        <div class="cell bit-1833"></div>
+        <div class="cell bit-1834"></div>
+        <div class="cell bit-1835"></div>
+        <div class="cell bit-1836"></div>
+        <div class="cell bit-1837"></div>
+        <div class="cell bit-1838"></div>
+        <div class="cell bit-1839"></div>
+        <div class="cell bit-1840"></div>
+        <div class="cell bit-1841"></div>
+        <div class="cell bit-1842"></div>
+        <div class="cell bit-1843"></div>
+        <div class="cell bit-1844"></div>
+        <div class="cell bit-1845"></div>
+        <div class="cell bit-1846"></div>
+        <div class="cell bit-1847"></div>
+        <div class="cell bit-1848"></div>
+        <div class="cell bit-1849"></div>
+        <div class="cell bit-1850"></div>
+        <div class="cell bit-1851"></div>
+        <div class="cell bit-1852"></div>
+        <div class="cell bit-1853"></div>
+        <div class="cell bit-1854"></div>
+        <div class="cell bit-1855"></div>
+        <div class="cell bit-1856"></div>
+        <div class="cell bit-1857"></div>
+        <div class="cell bit-1858"></div>
+        <div class="cell bit-1859"></div>
+        <div class="cell bit-1860"></div>
+        <div class="cell bit-1861"></div>
+        <div class="cell bit-1862"></div>
+        <div class="cell bit-1863"></div>
+        <div class="cell bit-1864"></div>
+        <div class="cell bit-1865"></div>
+        <div class="cell bit-1866"></div>
+        <div class="cell bit-1867"></div>
+        <div class="cell bit-1868"></div>
+        <div class="cell bit-1869"></div>
+        <div class="cell bit-1870"></div>
+        <div class="cell bit-1871"></div>
+        <div class="cell bit-1872"></div>
+        <div class="cell bit-1873"></div>
+        <div class="cell bit-1874"></div>
+        <div class="cell bit-1875"></div>
+        <div class="cell bit-1876"></div>
+        <div class="cell bit-1877"></div>
+        <div class="cell bit-1878"></div>
+        <div class="cell bit-1879"></div>
+        <div class="cell bit-1880"></div>
+        <div class="cell bit-1881"></div>
+        <div class="cell bit-1882"></div>
+        <div class="cell bit-1883"></div>
+        <div class="cell bit-1884"></div>
+        <div class="cell bit-1885"></div>
+        <div class="cell bit-1886 world"></div>
+        <div class="cell bit-1887 south-america"></div>
+        <div class="cell bit-1888"></div>
+        <div class="cell bit-1889"></div>
+        <div class="cell bit-1890"></div>
+        <div class="cell bit-1891"></div>
+        <div class="cell bit-1892"></div>
+        <div class="cell bit-1893"></div>
+        <div class="cell bit-1894"></div>
+        <div class="cell bit-1895"></div>
+        <div class="cell bit-1896"></div>
+        <div class="cell bit-1897"></div>
+        <div class="cell bit-1898"></div>
+        <div class="cell bit-1899"></div>
+        <div class="cell bit-1900"></div>
+        <div class="cell bit-1901"></div>
+        <div class="cell bit-1902"></div>
+        <div class="cell bit-1903"></div>
+        <div class="cell bit-1904"></div>
+        <div class="cell bit-1905"></div>
+        <div class="cell bit-1906"></div>
+        <div class="cell bit-1907"></div>
+        <div class="cell bit-1908"></div>
+        <div class="cell bit-1909"></div>
+        <div class="cell bit-1910"></div>
+        <div class="cell bit-1911"></div>
+        <div class="cell bit-1912"></div>
+        <div class="cell bit-1913"></div>
+        <div class="cell bit-1914"></div>
+        <div class="cell bit-1915"></div>
+        <div class="cell bit-1916"></div>
+        <div class="cell bit-1917"></div>
+        <div class="cell bit-1918"></div>
+        <div class="cell bit-1919"></div>
+        <div class="cell bit-1920"></div>
+        <div class="cell bit-1921"></div>
+        <div class="cell bit-1922"></div>
+        <div class="cell bit-1923"></div>
+        <div class="cell bit-1924"></div>
+      </div>
+      <div id="selected-area"></div>
+      <div id="router">
+        Start Router 
+      </div>
+      <script>
+// ADd = function(){
+    var canSel = null;
+    let cons = ["north-america","south-america", "australia", "asia","africa", "europe"]
+    var selectedState =false
+    cons.forEach(conName =>{
+        console.log(conName);
+        document.querySelectorAll(".cell").forEach(e=>{
+            if (e.classList.length == 2){
+                e.onclick = function(){
+                    CanCelSelect();
+                }
+
+            }
+        })
+        document.querySelectorAll("."+conName.trim()).forEach(e=>{
+            e.onmouseover = function(){
+                if (selectedState ){
+                    return
+                }
+                // if (canSel != null){
+                //     clearTimeout(canSel)
+                // }
+                document.querySelector("#selected-area").innerHTML = "";
+                document.querySelectorAll("."+conName ).forEach(ei =>{
+                    if (ei.className.indexOf("world")> -1){
+                        ei.style.backgroundColor = "#7cb8e4";
+                        if (ei.id != null && ei.id != ""){
+                            
+                            ShowBtn(ei.id)
+                        }
+                    }
+                    // ei.style.animation = "north-america 4s linear infinite;"
+                    // ei.style.animationDelay =  `-${Math.floor(Math.random() * 3000)}ms;`
+                })
+            }
+            e.onclick = function(){
+                document.querySelector("#selected-area").innerHTML = "";
+                if (selectedState){
+                    
+                    document.querySelectorAll(".selected").forEach(ei =>{
+                        if (ei.className.indexOf("world")> -1){
+                            ei.style.animation= ""
+                            ei.style.backgroundColor = "#222";
+                            document.querySelector("#selected-area").textContent = ""
+                        }
+                        ei.classList.remove("selected")
+                    })
+                    document.querySelector("#selected-area").innerHTML = "";
+                    selectedState = false
+                    return
+                }
+                // if (canSel != null){
+                //     clearTimeout(canSel)
+                // }
+                if (canSel != null){
+                    clearTimeout(canSel);
+                }
+                document.querySelectorAll("."+conName ).forEach(ei =>{
+                    if (ei.className.indexOf("world")> -1){
+                        
+                        ei.style.backgroundColor = "#7cb8e4";
+                        ei.classList.add("selected")
+                        if (ei.id != null && ei.id != ""){
+
+                            ShowBtn(ei.id);
+                        }
+                        selectedState = true
+                    }
+                    // ei.style.animation = "north-america 4s linear infinite;"
+                    // ei.style.animationDelay =  `-${Math.floor(Math.random() * 3000)}ms;`
+                })
+            }
+            e.onmouseout = function(){
+                if (selectedState){
+                    return
+                }else{
+                    canSel = setTimeout(function(){
+                        document.querySelectorAll("."+conName).forEach(ei =>{
+                            if (ei.className.indexOf("world")> -1){
+                                ei.style.animation= ""
+                                ei.style.backgroundColor = "#222";
+                                document.querySelector("#selected-area").textContent = ""
+                            }
+                        })
+                    },500)
+
+                }
+            }
+        })
+    })
+
+function Check(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"check",
+        })
+    }).then((response) => {
+        try {
+            return response.json()    
+        } catch (error) {
+            return nil
+        }
+        
+    }).then(d=>{
+        console.log("check",d)
+        if (d == null){
+            return
+        }
+        if (d.status == "ok"){
+            if (d.msg != null && d.msg.running != ""){
+                Run = true;
+                if (d.msg.global != null && d.msg.global){
+                    uisetgloabl(true)
+                }else{
+                    uisetgloabl(false)
+                }
+                
+            } else{
+                Run = false;
+            }
+        }
+    })
+}
+
+
+var state  = false;
+var Run = false;
+var Routes = {
+    "123.123.213.24":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.2":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.4":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.5":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.6":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.7":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.8":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+    "123.123.213.9":{
+        Host:"123.123.213.24",
+        Location:"Los Angeles",
+        Speed:"12312.asfams",
+    },
+};
+var RouteIPs = []; 
+
+function UpdateHostInfo(one){
+    Routes[one.Host] = one;
+    RouteIPs.push(one.Host);
+    let pointid = one.Location.replace(" ","-");
+    let e = document.querySelector("#"+pointid);
+    if (e != null){
+        if (one.Speed.indexOf("ms") > -1){
+            let cd = parseInt(0xff * (3000 - parseInt(one.Speed) )/ 3000).toString(16)
+            e.style.backgroundColor =`#11${cd}01`;
+        }else if (one.Speed.indexOf("s") > -1){
+            let cd = parseInt(0xff * (3000 - (parseInt(one.Speed)* 1000) )/ 3000).toString(16)
+            e.style.backgroundColor =`#11${cd}01`;
+        }else if (one.Speed.indexOf("hour") > -1){
+            let cd = '00'
+            e.style.backgroundColor =`#11${cd}01`;
+        }else{
+            let cd = '00'
+            e.style.backgroundColor =`#11${cd}01`;
+        }
+        
+    }else{
+        console.log("err in :",one);
+    }
+    // background-color:#11ff22
+}
+
+
+function CanCelSelect(){
+    document.querySelectorAll(".selected").forEach(ei =>{
+        if (ei.className.indexOf("world")> -1){
+            ei.style.animation= ""
+            ei.style.backgroundColor = "#222";
+            document.querySelector("#selected-area").textContent = ""
+        }
+        ei.classList.remove("selected")
+    })
+    document.querySelector("#selected-area").innerHTML = "";
+    selectedState = false
+}
+
+function Test(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"test",
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d == null){
+            return
+        }
+        if (d.status == "ok"){
+            
+            
+            if (d.msg != null && d.msg.length > 0){
+                Routes = {};
+                RouteIPs = []; 
+                d.msg.forEach(onevps => {
+                    UpdateHostInfo(onevps)
+                });
+            }else{
+                Run = false;
+            }
+            
+        }else{
+            
+        }
+    })
+}
+
+
+function Go(host){
+    // let state = document.querySelector("#state").textContent;
+    
+    CanCelSelect();
+    // document.querySelector(`div[host="${host}"]`).setAttribute("onclick","return false");
+    fetch("/z-api", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            op:"switch",
+            host:host,
+        })
+    }).then((response) => {
+        try{
+            return response.json()
+        } catch{
+            return null
+        }
+        
+    }).then(d=>{
+        state = "ready";
+        
+        if (d != null){
+            if (d.status == "ok"){
+                SetRuning(host)
+            }else{
+                // alert(d.msg);
+            }
+
+        }
+    });
+
+}
+
+function ShowBtn(id){
+    let loc  = id.replace("-"," ");
+    RouteIPs.forEach(ip=>{
+        let route = Routes[ip];
+        if (route != null && route.Location != null && route.Location == loc){
+            let ebtn = document.createElement("div")
+            ebtn.classList.add("btn")
+            ebtn.setAttribute("onclick",`return Go("${route.Host}")`);
+            ebtn.textContent = `${route.Host} ${route.Location} ${route.Speed}`;
+            document.querySelector("#selected-area").appendChild(ebtn)
+        }
+    })
+
+    
+}
+
+function SetRuning(host){
+    console.log(host);
+    let route = Routes[host];
+    let old = document.querySelector(".running");
+    if (old != null){
+        old.classList.remove("running");
+    }
+
+    if (route != null && route.Location != null){
+        let id = route.Location.replace(" ","-");
+        console.log("to go "+id);
+        document.querySelector("#"+id).classList.add("running")
+    }
+}
+
+
+function SetGlobal(st ){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"global",
+            state:st,
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d == null){
+            return
+        }
+        if (d.status == "ok"){
+            // console.log(d.msg);
+            if (st == "on"){
+                uisetgloabl(true)
+            }else{
+                uisetgloabl(false)
+            }
+        }
+    })
+}
+fetch("/z-route",{
+    method:"POST",
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+        op:"check",
+    })
+}).then((response) => {
+    try{
+        return response.json();
+    }catch {
+        return null;
+    }
+}).then(d=>{
+    if (d.msg.can){
+        let r = document.querySelector("#router");
+        if (!d.msg.running){
+            r.textContent = "Start Router"
+            r.setAttribute("onclick", 'return SetRouter(true)')
+        }else{
+            r.textContent = "Stop"
+            r.setAttribute("onclick", 'return SetRouter(false)')
+        }
+        
+    }
+})
+
+
+function SetRouter(st) {
+    if (st){
+        fetch("/z-route",{
+            method:"POST",
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                op:"start",
+                state:st,
+            })
+        }).then((response) => {
+            try{
+                return response.json();
+            }catch {
+                return null;
+            }
+        }).then(d=>{
+            if (d.status =="ok"){
+                let r = document.querySelector("#router");
+                r.textContent = "Stop Router"
+                r.setAttribute("onclick", 'return SetRouter(false)')
+            }
+        })   
+    }else{
+        fetch("/z-route",{
+            method:"POST",
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                op:"stop",
+                state:st,
+            })
+        }).then((response) => {
+            try{
+                return response.json();
+            }catch {
+                return null;
+            }
+        }).then(d=>{
+            if (d.status =="ok"){
+                let r = document.querySelector("#router");
+                r.textContent = "Start Router"
+                r.setAttribute("onclick", 'return SetRouter(true)')
+            }
+        })   
+
+    }
+}
+
+function uisetgloabl(st){
+    if (st){
+        document.querySelector("body").backgroundColor = "white"
+    }else{
+        document.querySelector("body").backgroundColor = "black"
+    }
+}
+
+setInterval(Test,1000)
+setInterval(Check,1000)
+
+    </script>
+
+</body>
+</html>

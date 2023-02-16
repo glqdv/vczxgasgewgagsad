@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      canvas {
+        width: 100%;
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="world-map"></canvas>
+    <script>
+      const canvas = document.getElementById("world-map");
+      const ctx = canvas.getContext("2d");
+      const mapWidth = 3000;
+      const mapHeight = 1500;
+
+      canvas.width = mapWidth;
+      canvas.height = mapHeight;
+
+      const pixels = [];
+
+      for (let i = 0; i < mapWidth * mapHeight; i++) {
+        let x = i % mapWidth;
+        let y = Math.floor(i / mapWidth);
+
+        // Determine the continent for each pixel based on its (x, y) position
+        let continent;
+        if (y < 500) {
+          continent = "North America";
+        } else if (y < 1000) {
+          continent = "Europe";
+        } else {
+          continent = "Asia";
+        }
+
+        // Assign a color to each continent
+        let color;
+        if (continent === "North America") {
+          color = "red";
+        } else if (continent === "Europe") {
+          color = "green";
+        } else {
+          color = "blue";
+        }
+
+        pixels.push({ x, y, color });
+      }
+
+      // Draw each pixel on the canvas
+      pixels.forEach(({ x, y, color }) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, 1, 1);
+      });
+    </script>
+  </body>
+</html>

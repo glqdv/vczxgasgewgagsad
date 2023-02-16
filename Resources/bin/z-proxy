@@ -1,0 +1,29 @@
+#!/bin/sh /etc/rc.common
+START=96
+STOP=10
+
+PROG=/usr/local/bin/proxy-z
+
+
+
+reload() {
+	stop
+    sleep 1
+    start
+	return 0
+}
+
+restart() {
+	stop
+    sleep 1
+    start
+}
+
+start() {
+    $PROG -http -d  2>&1  1>/var/log/proxy-z.log
+}
+
+stop() {
+	ps | grep $PROG | grep -v grep | awk '{print $1}' | xargs kill -9
+	return 0
+}
