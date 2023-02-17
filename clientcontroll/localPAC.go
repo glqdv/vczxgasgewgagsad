@@ -4,6 +4,7 @@ import (
 	"net"
 	"runtime"
 
+	"gitee.com/dark.H/ProxyZ/connections/prodns"
 	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
 	"gitee.com/dark.H/ProxyZ/geo"
 	"gitee.com/dark.H/gs"
@@ -28,7 +29,7 @@ func (c *ClientControl) regionFilter(comcon net.Conn, raw []byte, h string) bool
 func (c *ClientControl) tcppipe(comcon net.Conn, host gs.Str) {
 	con, err := net.Dial("tcp", host.Str())
 	if err != nil {
-		gs.Str("%s conneting err ").F(host).Color("r").Println("CN")
+		gs.Str("%s conneting err ").F(host + "-" + gs.Str(prodns.SearchIP(host.Str()))).Color("r").Println("CN")
 		return
 	}
 	_, err = comcon.Write(prosocks5.Socks5Confirm)
@@ -37,7 +38,7 @@ func (c *ClientControl) tcppipe(comcon net.Conn, host gs.Str) {
 		gs.Str("%s reply socks5 err ").F(host).Color("r").Println("CN")
 		return
 	}
-	gs.Str("%s %s\t\t        ").F(gs.Str("[connected] E/A:%d/%d ").F(c.ErrCount, c.acceptCount).Color("w", "B")+gs.S(c.AliveCount), host).Color("g").Add("\r").Print()
+	host.Color("b").Println("LOCAL")
 	c.Pipe(comcon, con)
 }
 

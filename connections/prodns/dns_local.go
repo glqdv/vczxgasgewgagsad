@@ -15,6 +15,8 @@ import (
 var (
 	isRouter           = (runtime.GOOS == "linux" && runtime.GOARCH == "arm")
 	ip2host            = make(gs.Dict[string])
+	local2host         = make(gs.Dict[string])
+	fuzzyHost          = gs.List[string]{}
 	domainsToAddresses = make(map[string]*DNSRecord)
 )
 
@@ -49,12 +51,7 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 		if isRouter {
 			domain := msg.Question[0].Name
-			if gs.Str(domain).EndsWith(".cn") {
-				if this.ResolveLocal(w, msg) {
-					return
-				}
-			}
-			if gs.Str(domain).In("bilibili") {
+			if IsLocal(domain) {
 				if this.ResolveLocal(w, msg) {
 					return
 				}
@@ -77,17 +74,6 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	w.WriteMsg(&msg)
 }
 
-func SearchIP(ip string) (doamin string) {
-	if domai, ok := ip2host[ip]; ok {
-		doamin = domai
-	}
-	return
-}
-
-func Clear() {
-	domainsToAddresses = make(map[string]*DNSRecord)
-}
-
 func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
 	domain := msg.Question[0].Name
 	if r, err := ReplyDNS(PackDNS(&msg)); err == nil {
@@ -108,6 +94,7 @@ func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
 				domainsToAddresses[domain] = record
 				record.IPs.Every(func(no int, i string) {
 					ip2host[i] = domain
+					local2host[i] = domain
 				})
 				this.lock.Unlock()
 				w.WriteMsg(replymsg)
@@ -125,71 +112,76 @@ func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
 
 func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 	domain := msg.Question[0].Name
-	data := PackDNS(&msg)
-	for i := 0; i < 3; i++ {
-		conn, err, eid, _ := this.cons.ConnectRemote()
-		if err != nil && i < 2 {
-
-			continue
-		}
-		if err != nil && i == 2 {
-			this.cons.ErrRecord(eid, 2)
-			break
-		}
-		defer conn.Close()
-		r := prosocks5.HostToRaw(data.Str(), 99)
-		conn.Write(r)
-		replyB := make([]byte, 4096)
-		conn.SetReadDeadline(time.Now().Add(6 * time.Second))
-		gs.Str(domain).Color("y").Println(gs.Str("query").Color("b"))
-		if n, err := conn.Read(replyB); err != nil {
-			if len(msg.Question) > 0 {
-				qn := msg.Question[0].Name
-				if i == 2 {
-					gs.Str("[%d] health:%.2f%% [%s/%s] dns send err:"+err.Error()).F(i, this.cons.Health(), qn, eid).Color("r", "B").Println("dns")
-					this.cons.ErrRecord(eid, 2)
-				}
-
-			}
-
-			continue
-		} else {
-			if replymsg, err := UnpackDNS(gs.Str(string(replyB[:n]))); err != nil {
-				gs.Str("dns unpack err:"+err.Error()).Color("r", "B").Println("dns")
-				continue
-			} else {
-				ip := ""
-				if len(replymsg.Answer) > 0 {
-					record := &DNSRecord{
-						timeout: time.Now().Add(1 * time.Hour),
-					}
-					for _, o := range replymsg.Answer {
-						if o.Header().Rrtype == dns.TypeA && o.Header().Class == dns.ClassINET {
-							ip = o.(*dns.A).A.String()
-							if ip != "" && ip != "0.0.0.0" {
-								record.IPs = record.IPs.Add(ip)
-							}
-						}
-					}
-					if record.IPs.Count() > 0 {
-						this.lock.Lock()
-						domainsToAddresses[domain] = record
-						record.IPs.Every(func(no int, i string) {
-							ip2host[i] = domain
-						})
-						this.lock.Unlock()
-					}
-				}
-				if len(replymsg.Question) > 0 {
-
-					gs.Str("(" + msg.Question[0].Name + ")").Color("y").Add(gs.Str(ip).Color("m")).Println("dns remote")
-				}
-				w.WriteMsg(replymsg)
-				return true
-			}
-
+	if gs.Str(domain).EndsWith(".lan.") {
+		oldClass := msg.Question[0].Qclass
+		msg.Question[0] = dns.Question{
+			Name:   string(gs.Str(domain).Replace(".lan.", ".")),
+			Qtype:  dns.TypeA,
+			Qclass: oldClass,
 		}
 	}
+	data := PackDNS(&msg)
+	conn, err, eid, _ := this.cons.ConnectRemote()
+	if err != nil {
+		this.cons.ErrRecord(eid, 1)
+		return false
+	}
+	if err != nil {
+		this.cons.ErrRecord(eid, 1)
+		return false
+	}
+	defer conn.Close()
+	r := prosocks5.HostToRaw(data.Str(), 99)
+	conn.Write(r)
+	replyB := make([]byte, 4096)
+	conn.SetReadDeadline(time.Now().Add(6 * time.Second))
+	gs.Str(domain).Color("y").Println(gs.Str("query remote").Color("b"))
+	if n, err := conn.Read(replyB); err != nil {
+		if len(msg.Question) > 0 {
+			qn := msg.Question[0].Name
+			gs.Str("health:%.2f%% [%s/%s] dns send err:"+err.Error()).F(this.cons.Health(), qn, eid).Color("r", "B").Println("dns")
+			this.cons.ErrRecord(eid, 2)
+
+		}
+
+		return false
+	} else {
+		if replymsg, err := UnpackDNS(gs.Str(string(replyB[:n]))); err != nil {
+			gs.Str("dns unpack err:"+err.Error()).Color("r", "B").Println("dns")
+			return false
+		} else {
+			ip := ""
+			if len(replymsg.Answer) > 0 {
+				record := &DNSRecord{
+					timeout: time.Now().Add(5 * time.Minute),
+				}
+				for _, o := range replymsg.Answer {
+					if o.Header().Rrtype == dns.TypeA && o.Header().Class == dns.ClassINET {
+						ip = o.(*dns.A).A.String()
+						if ip != "" && ip != "0.0.0.0" {
+							record.IPs = record.IPs.Add(ip)
+						}
+					}
+				}
+				if record.IPs.Count() > 0 {
+					this.lock.Lock()
+					domainsToAddresses[domain] = record
+					record.IPs.Every(func(no int, i string) {
+						ip2host[i] = domain
+					})
+					this.lock.Unlock()
+				}
+			}
+			if len(replymsg.Question) > 0 {
+
+				gs.Str("(" + msg.Question[0].Name + ")").Color("y").Add(gs.Str(ip).Color("m")).Println("dns remote")
+			}
+			w.WriteMsg(replymsg)
+			return true
+		}
+
+	}
+
 	return false
 }
 

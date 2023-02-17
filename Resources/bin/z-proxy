@@ -20,7 +20,7 @@ restart() {
 }
 
 start() {
-    $PROG -http -d  2>&1  1>/var/log/proxy-z.log
+    HOME="/root" $PROG -http -d  2>&1  1>/var/log/proxy-z.log
 }
 
 stop() {

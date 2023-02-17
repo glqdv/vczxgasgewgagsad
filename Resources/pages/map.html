@@ -181,6 +181,24 @@
             align-items: center;
             border-radius: 1em;
         }
+
+        #rule{
+            background-color: #073360;
+            position: fixed;
+            left: 8px;
+            display: flex;
+            flex-direction: row;
+            text-align: center;
+            top: 65%;
+            width: 20px;
+            /* height: 100px; */
+            writing-mode: tb-rl;
+            padding: 5px;
+            color: white;
+            align-items: center;
+            border-radius: 1em;
+        }
+      
       
         #router:hover{
             cursor: pointer;
@@ -2123,6 +2141,9 @@
       <div id="router">
         Start Router 
       </div>
+      <div id="rule" onclick="return GoRule()">
+        Not Proxy Host/IP 
+      </div>
       <script>
 // ADd = function(){
     var canSel = null;
@@ -2496,6 +2517,7 @@ fetch("/z-route",{
 
 
 function SetRouter(st) {
+    document.querySelector("#router").style.display = "none"
     if (st){
         fetch("/z-route",{
             method:"POST",
@@ -2511,6 +2533,7 @@ function SetRouter(st) {
                 return null;
             }
         }).then(d=>{
+            document.querySelector("#router").style.display = "flex"
             if (d.status =="ok"){
                 let r = document.querySelector("#router");
                 r.textContent = "Stop Router"
@@ -2532,6 +2555,7 @@ function SetRouter(st) {
                 return null;
             }
         }).then(d=>{
+            document.querySelector("#router").style.display = "flex"
             if (d.status =="ok"){
                 let r = document.querySelector("#router");
                 r.textContent = "Start Router"
@@ -2548,6 +2572,11 @@ function uisetgloabl(st){
     }else{
         document.querySelector("body").backgroundColor = "black"
     }
+}
+
+
+function GoRule(){
+    window.location.href = "/z-rule"
 }
 
 setInterval(Test,1000)

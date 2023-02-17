@@ -61,7 +61,7 @@ func GetIface() (string, string) {
 
 func IPTahbleRouteSet() string {
 	iface, gatewayip := GetIface()
-	gs.Str("iface: %s | ip: %s").F(iface, gatewayip).Println()
+	gs.Str("iface: %s | ip: %s").F(iface, gatewayip).Println("firewall")
 	if res := gn.AsReq(gs.Str("http://localhost:35555/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 		"op": "test",
 	}.Json())).Go(); res.Err == nil {

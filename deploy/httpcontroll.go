@@ -13,6 +13,7 @@ import (
 
 	"gitee.com/dark.H/ProxyZ/asset"
 	"gitee.com/dark.H/ProxyZ/clientcontroll"
+	"gitee.com/dark.H/ProxyZ/connections/prodns"
 	"gitee.com/dark.H/ProxyZ/router"
 	"gitee.com/dark.H/gs"
 )
@@ -75,7 +76,9 @@ func localSetupHandler() http.Handler {
 	apath := gs.Str("~").ExpandUser().PathJoin(".config", "proxy-z.auth.conf")
 	hpath := gs.Str("~").ExpandUser().PathJoin(".config", "proxy-z.host.conf")
 	gs.Str("~").ExpandUser().PathJoin(".config").Mkdir()
-
+	s := gs.Str("~").ExpandUser().PathJoin(".config", "local.conf")
+	s.Dirname().Mkdir()
+	prodns.LoadLocalRule(s.Str())
 	user := ""
 	pwd := ""
 	last := ""
@@ -139,6 +142,49 @@ func localSetupHandler() http.Handler {
 		}
 	})
 
+	mux.HandleFunc("/z-rule", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			w.Write(LoadPage("local.html", nil))
+		} else {
+			d, err := Recv(r.Body)
+			if err != nil {
+				w.WriteHeader(400)
+				Reply(w, err, false)
+				return
+			}
+			op := d["op"].(string)
+			switch op {
+			case "get-rule":
+				if s := gs.Str("~").ExpandUser().PathJoin(".config", "local.conf"); s.IsExists() {
+					Reply(w, s.MustAsFile(), true)
+					return
+				} else {
+					Reply(w, "# no rule ", true)
+					return
+				}
+			case "set-rule":
+				if rule, ok := d["rule"]; ok {
+					s := gs.Str("~").ExpandUser().PathJoin(".config", "local.conf")
+					s.Dirname().Mkdir()
+					gs.Str(rule.(string)).ToFile(s.Str(), gs.O_NEW_WRITE)
+					gs.Str(rule.(string)).Println("Update Local Rule")
+					prodns.LoadLocalRule(s.Str())
+					Reply(w, rule, true)
+					return
+				} else {
+					if s := gs.Str("~").ExpandUser().PathJoin(".config", "local.conf"); s.IsExists() {
+						Reply(w, s.MustAsFile(), true)
+						return
+					} else {
+						Reply(w, "# no rule ", true)
+						return
+					}
+				}
+
+			}
+		}
+	})
+
 	mux.HandleFunc("/z-login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			w.Write(LoadPage("login.html", nil))
@@ -158,17 +204,10 @@ func localSetupHandler() http.Handler {
 				last = e.(string)
 				// useLast = true
 			}
-			proxyOut := ""
+
 			if e, ok := d["proxy"]; ok {
-				proxyOut = e.(string)
 				proxy = e.(string)
-				if proxyOut == "ok" {
-					go func() {
-						router.StopFirewall()
-						time.Sleep(3 * time.Second)
-						router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
-					}()
-				}
+
 			}
 			gs.Str("Start pull all routes ").Println("init")
 			if vpss := GitGetAccount("https://"+string(gs.Str("55594657571e515d5f1f5653405b1c7a1d53541c555946").Derypt("2022")), user, pwd); vpss.Count() > 0 {
@@ -180,6 +219,13 @@ func localSetupHandler() http.Handler {
 				}
 				useLast := false
 				gs.Str("Pull Routes:%d").F(vpss.Count()).Println("init")
+				if proxy == "ok" {
+					go func() {
+						router.StopFirewall()
+						time.Sleep(3 * time.Second)
+						router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
+					}()
+				}
 				if last != "" {
 					globalClient.Routes.Every(func(no int, i *Onevps) {
 						if i.Host == last {
@@ -195,14 +241,34 @@ func localSetupHandler() http.Handler {
 					if globalClient.ClientConf == nil {
 						globalClient.ClientConf = clientcontroll.NewClientControll(last, LOCAL_PORT)
 						// globalClient.ClientConf
+						globalClient.ClientConf.SetChangeRoute(func() string {
+							var it *Onevps
 
-						go globalClient.ClientConf.DNSListen()
-						go func() {
-							for {
-								globalClient.ClientConf.Socks5Listen()
+							globalClient.Routes.Every(func(no int, i *Onevps) {
+								if it == nil {
+									it = i
+								} else {
+
+									fi, err1 := _switch(i.Speed)
+									fit, err2 := _switch(it.Speed)
+									if err1 == nil && err2 == nil {
+										if fit < fi {
+											it = i
+										}
+									}
+								}
+							})
+							if it != nil {
+								return it.Host
+							} else {
+								return ""
 							}
 
-						}()
+						})
+
+						go globalClient.ClientConf.Socks5Listen()
+						go globalClient.ClientConf.DNSListen()
+
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
 						globalClient.ClientConf.TryClose()

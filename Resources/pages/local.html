@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Not Proxy</title>
+    <style>
+        body{
+            padding: 0px;
+            /* margin-left: 10px; */
+            /* margin-right: 20px; */
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            background-color: black;
+        }
+        #area{
+            width: 93%;
+            margin: 20px;
+            height: 90vh;
+            padding-top: 10px;
+            
+        }
+        textarea{
+            
+            background-color: #222;
+            margin: 0;
+            border-radius: 20px;
+            
+            color:white;
+            height: 100%;
+            padding: 10px;
+            /* margin-left: 10px; */
+            /* margin-right: 10px; */
+            
+            width: 100%;
+            box-shadow: 10px 10px 20px gray;
+        }
+        #update-local{
+            position: fixed;
+            
+            margin-top: 10px;
+            margin-bottom: 10px;
+            width: 80%;
+            align-self: center;
+            border-radius: 5px;
+            height: 30px;
+        }
+        
+        #back{
+            height: 20px;
+            width: 60px;
+            height: 20px;
+            margin-left: 10px;
+            margin-top: 15px;
+            border-radius: 5px;
+            position: fixed;
+            background-color: rgb(234, 234, 234);
+
+        }
+    </style>
+</head>
+<body>
+    <div id="area">
+        <textarea  id="local"  rows="100">
+           # area for 
+        </textarea>
+    </div>
+    <a id="back" href="/" > Go /</a>
+    <button id="update-local" onclick="return UpdateRule()"> Update</button>
+    <script>
+
+function UpdateRule(){
+    let ruleContent = document.querySelector("#local").value;
+    fetch("/z-rule",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"set-rule",
+            rule: ruleContent,
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d.msg != null){
+            let r = document.querySelector("#local");
+            r.textContent =   d.msg;
+        }
+    })
+}
+
+function GetRule(){
+    fetch("/z-rule",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"get-rule",
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d.msg != null){
+            let r = document.querySelector("#local");
+            r.value =   d.msg;
+        }
+    })
+}
+
+GetRule()
+setInterval(GetRule, 10000);
+
+    </script>
+</body>
+</html>
