@@ -23,9 +23,11 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 		server += ":55443"
 	}
 	server += "/z-dns"
-	tq := gn.AsReq(server.AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
+	q := server.AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 		"hosts": gs.List[string](domains).Join(","),
-	}.Json()))
+	}.Json())
+	q.HTTPS = true
+	tq := gn.AsReq(q)
 
 	// tq = true
 	tq.Timeout = 4

@@ -136,6 +136,7 @@ func setupHandler(www string) http.Handler {
 			Reply(w, err, false)
 			return
 		}
+		gs.Str("DNS ???").Println("Query DNS")
 
 		if hostsStr, ok := d["hosts"]; ok {
 			res := gs.Dict[any]{}
