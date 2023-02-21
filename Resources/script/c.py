@@ -215,8 +215,9 @@ class Controller:
       Used[pin_num] = True
 
   def switch(self, call_time):
-    if call_time > 1.5:
+    if call_time > 0.5:
       print("Long time --- to close")
+      self.show("Switch To      \nChina/World               ")
       try:
         res = requests.post("http://127.0.0.1:35555/z-route",json.dumps({
           "op":"open/close",
@@ -225,7 +226,7 @@ class Controller:
       except Exception as e:
         self.show(str(e), wait=4)
     else:
-      self.show("Switch next rotue", wait=1)
+      self.show("Switch next rotue\n the fast route mode")
       try:
         res = requests.post("http://127.0.0.1:35555/z-api",json.dumps({
           "op":"switch",
