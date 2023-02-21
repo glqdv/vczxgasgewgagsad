@@ -199,7 +199,7 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 		}
 	}
 	domain = msg.Question[0].Name
-
+	Query(domain)
 	record := Reply(domain)
 	record.timeout = time.Now().Add(5 * time.Minute)
 

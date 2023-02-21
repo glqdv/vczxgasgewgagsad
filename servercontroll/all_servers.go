@@ -131,18 +131,27 @@ func setupHandler(www string) http.Handler {
 	})
 
 	mux.HandleFunc("/z-dns", func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-		hostsStr := r.Form.Get("hosts")
-		res := gs.Dict[any]{}
-		for _, host := range gs.Str(hostsStr).Split(",") {
-			gs.Str(host).Println("Query DNS")
-			if ips, err := net.LookupHost(host.Str()); err == nil {
-				for _, _ip := range ips {
-					res[_ip] = host
+		d, err := Recv(r.Body)
+		if err != nil {
+			Reply(w, err, false)
+			return
+		}
+
+		if hostsStr, ok := d["hosts"]; ok {
+			res := gs.Dict[any]{}
+			for _, host := range gs.Str(hostsStr.(string)).Split(",") {
+				gs.Str(host).Println("Query DNS")
+				if ips, err := net.LookupHost(host.Str()); err == nil {
+					for _, _ip := range ips {
+						res[_ip] = host
+					}
 				}
 			}
+			Reply(w, res, true)
+
+		} else {
+			Reply(w, "no dns", false)
 		}
-		Reply(w, res, true)
 	})
 
 	mux.HandleFunc("/z-ufw-close-all", func(w http.ResponseWriter, r *http.Request) {

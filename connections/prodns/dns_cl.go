@@ -1,6 +1,7 @@
 package prodns
 
 import (
+	"encoding/json"
 	"time"
 
 	"gitee.com/dark.H/gn"
@@ -22,14 +23,23 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 		server += ":55443"
 	}
 	server += "/z-dns"
-	tq := gn.AsReq(server.AsRequest().SetMethod("post").SetForm("hosts", gs.List[string](domains).Join(",")))
+	tq := gn.AsReq(server.AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
+		"hosts": gs.List[string](domains).Join(","),
+	}.Json()))
+
+	// tq = true
 	tq.Timeout = 4
+	tq.Println("end")
 	if res := tq.Go(); res.Err != nil {
 		gs.Str(res.Err.Error()).Color("r").Println("dns query err")
 	} else {
-		res.Body().Json().Every(func(k string, v any) {
-			reply[k] = v.(string)
-		})
+		buf := res.Body()
+		buf.Println("Reply DNS")
+		err := json.Unmarshal(buf.Bytes(), &reply)
+		if err != nil {
+			gs.Str(err.Error()).Color("r").Println()
+			buf.Color("y").Println("Detail")
+		}
 	}
 	return
 }
