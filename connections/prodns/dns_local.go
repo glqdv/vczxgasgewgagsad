@@ -131,6 +131,7 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 		return false
 	}
 	defer conn.Close()
+	// data.Println()
 	r := prosocks5.HostToRaw(data.Str(), 99)
 	conn.Write(r)
 	replyB := make([]byte, 4096)
@@ -139,7 +140,7 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 	if n, err := conn.Read(replyB); err != nil {
 		if len(msg.Question) > 0 {
 			qn := msg.Question[0].Name
-			gs.Str("health:%.2f%% [%s/%s] dns send err:"+err.Error()).F(this.cons.Health(), qn, eid).Color("r", "B").Println("dns")
+			gs.Str("health:%.2f%% [%s/%s] dns read err:"+err.Error()).F(this.cons.Health(), qn, eid).Color("r", "B").Println("dns")
 			this.cons.ErrRecord(eid, 2)
 
 		}

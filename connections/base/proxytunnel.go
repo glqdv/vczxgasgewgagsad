@@ -188,7 +188,7 @@ func (pt *ProxyTunnel) DnsNormal(host string, con net.Conn) (err error) {
 	// 	Timeout:   1 * time.Second,
 	// 	LocalAddr: &laddr,
 	// }
-	// gs.Str(host).Println("query")
+	gs.Str(host).Println("query")
 	if msg, err := prodns.ReplyDNS(gs.Str(host)); err != nil || msg == "" {
 		gs.Str(err.Error()).Println("DNS")
 		return err

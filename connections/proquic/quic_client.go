@@ -46,8 +46,8 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	conn := q.qcon
 	var stream quic.Stream
 	// gs.Str("open stream !!").Println()
-	cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	stream, err = conn.OpenStreamSync(cc)
+	// cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	stream, err = conn.OpenStream()
 
 	if err != nil {
 
