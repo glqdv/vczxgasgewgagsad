@@ -29,11 +29,26 @@ func GetProxy(proxyType ...string) *base.ProxyTunnel {
 			return tunnel
 		} else {
 			lock.Lock()
+			otunnel := Tunnels.Nth(lastUse)
 			lastUse += 1
 			lastUse = lastUse % Tunnels.Count()
-			lock.Unlock()
 			tunnel := Tunnels.Nth(lastUse)
+			lock.Unlock()
+			for i := 0; i < 4; i++ {
+				lock.Lock()
+				otunnel = Tunnels.Nth(lastUse)
+				lastUse += 1
+				lastUse = lastUse % Tunnels.Count()
+				tunnel = Tunnels.Nth(lastUse)
+				lock.Unlock()
+				if tunnel.GetConfig().ProxyType == otunnel.GetConfig().ProxyType {
+					continue
+				} else {
+					return tunnel
+				}
+			}
 			return tunnel
+
 		}
 	} else {
 		var tu *base.ProxyTunnel

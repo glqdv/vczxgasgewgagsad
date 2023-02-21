@@ -59,7 +59,7 @@ func GetIface() (string, string) {
 	return "", ""
 }
 
-func IPTahbleRouteSet() string {
+func IPTahbleRouteSet(Pre string) string {
 	iface, gatewayip := GetIface()
 	gs.Str("iface: %s | ip: %s").F(iface, gatewayip).Println("firewall")
 	if res := gn.AsReq(gs.Str("http://localhost:35555/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
@@ -67,6 +67,7 @@ func IPTahbleRouteSet() string {
 	}.Json())).Go(); res.Err == nil {
 		d := gs.Dict[any]{}
 		err := json.Unmarshal(res.Body().Bytes(), &d)
+
 		if err == nil {
 			d2 := gs.AsList[any](d["msg"])
 			render := gs.Str(`
@@ -74,9 +75,9 @@ iptables -P INPUT ACCEPT
 iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 iptables -t nat -N REDSOCKS
-iptables -t nat -A prerouting_rule -i $${IFACE} -p tcp -j REDSOCKS
+iptables -t nat -A $${PRE} -i $${IFACE} -p tcp -j REDSOCKS
 # redirct dns
-iptables -t nat -A prerouting_rule -p udp --dport  53 -j REDIRECT --to-ports 60053
+iptables -t nat -A $${PRE} -p udp --dport  53 -j REDIRECT --to-ports 60053
 %s
 iptables -t nat -A REDSOCKS -d 0.0.0.0/8 -j RETURN
 iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN
@@ -91,7 +92,7 @@ iptables -t nat -A REDSOCKS -d 240.0.0.0/4 -j RETURN
 iptables -t nat -A REDSOCKS -p tcp -s $${IP} --dport $${PORT} -j RETURN
 iptables -t nat -A REDSOCKS -d $${IP} -j RETURN
 iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 1081
-iptables -t nat -A prerouting_rule -p tcp -j REDSOCKS`)
+iptables -t nat -A $${PRE} -p tcp -j REDSOCKS`)
 			tmp := gs.Str("")
 			d2.Every(func(no int, i any) {
 				i2 := gs.AsDict[any](i)
@@ -100,6 +101,7 @@ iptables -t nat -A prerouting_rule -p tcp -j REDSOCKS`)
 			return string(render.F(tmp).Format(gs.Dict[string]{
 				"IP":    gatewayip,
 				"IFACE": iface,
+				"PRE":   Pre,
 			}))
 
 		}
@@ -115,9 +117,9 @@ iptables -t nat -A prerouting_rule -p tcp -j REDSOCKS`)
 iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 iptables -t nat -N REDSOCKS
-iptables -t nat -A prerouting_rule -i $${IFACE} -p tcp -j REDSOCKS
+iptables -t nat -A $${PRE} -i $${IFACE} -p tcp -j REDSOCKS
 # redirct dns
-iptables -t nat -A prerouting_rule -p udp --dport  53 -j REDIRECT --to-ports 60053
+iptables -t nat -A $${PRE} -p udp --dport  53 -j REDIRECT --to-ports 60053
 %s
 iptables -t nat -A REDSOCKS -d 0.0.0.0/8 -j RETURN
 iptables -t nat -A REDSOCKS -d 10.0.0.0/8 -j RETURN
@@ -132,7 +134,7 @@ iptables -t nat -A REDSOCKS -d 240.0.0.0/4 -j RETURN
 iptables -t nat -A REDSOCKS -p tcp -s $${IP} --dport $${PORT} -j RETURN
 iptables -t nat -A REDSOCKS -d $${IP} -j RETURN
 iptables -t nat -A REDSOCKS -p tcp -j REDIRECT --to-ports 1081
-iptables -t nat -A prerouting_rule -p tcp -j REDSOCKS`)
+iptables -t nat -A $${PRE} -p tcp -j REDSOCKS`)
 			tmp := gs.Str("")
 			d2.Every(func(no int, i any) {
 				i2 := gs.AsDict[any](i)
@@ -141,6 +143,7 @@ iptables -t nat -A prerouting_rule -p tcp -j REDSOCKS`)
 			return string(render.F(tmp).Format(gs.Dict[string]{
 				"IP":    gatewayip,
 				"IFACE": iface,
+				"PRE":   Pre,
 			}))
 		}
 	}
@@ -208,7 +211,8 @@ redsocks{
 			}
 			Exec(`redsocks -c /tmp/redsocks.conf`)
 		} else {
-			gs.Str(`base {
+			gs.Str(`
+base {
     log_debug = on;
     log_info = on;
     redirector = iptables;
@@ -221,7 +225,8 @@ redsocks{
     type = socks5;
     autoproxy = 0;
     timeout = 12;
-}`).Format(gs.Dict[string]{
+}
+`).Format(gs.Dict[string]{
 				"ip":   gatewayip,
 				"port": port,
 			}).ToFile("/tmp/redsocks.conf", gs.O_NEW_WRITE)
@@ -237,11 +242,18 @@ redsocks{
 			Exec(`redsocks2 -c /tmp/redsocks.conf`)
 		}
 
-		gs.Str(IPTahbleRouteSet()).Format(gs.Dict[string]{
+		Pre := "PREROUTING"
+		if Exec("iptables -t nat  -L").In("prerouting_rule") {
+			Pre = "prerouting_rule"
+		}
+		gs.Str(IPTahbleRouteSet(Pre)).Format(gs.Dict[string]{
 			"PORT": port,
 		}).ToFile("/etc/firewall.user", gs.O_NEW_WRITE)
 		gs.Str("write rule to /etc/firewall.user ").Println("firewall")
 		Exec("/etc/init.d/firewall restart 2> /dev/null;")
+		if !Exec("iptables -t nat -L ").In("1091") {
+			Exec("cat /etc/firewall.user | sh ")
+		}
 	}
 }
 
@@ -250,6 +262,10 @@ func StopFirewall() {
 	case "linux":
 		gs.Str("").ToFile("/etc/firewall.user", gs.O_NEW_WRITE)
 		Exec("/etc/init.d/firewall restart 2> /dev/null;")
+		if Exec("iptables -t nat -L ").In("1091") {
+			Exec("iptables -t nat -F")
+			Exec("/etc/init.d/firewall restart 2> /dev/null;")
+		}
 		kill("redsocks")
 		// kill("red2socks")
 	}
@@ -288,6 +304,13 @@ func CheckStatus() (can, startFirewall, status bool) {
 
 func IsRouter() bool {
 	return runtime.GOOS == "linux" && gs.Str(runtime.GOARCH).In("arm")
+}
+
+func IsOpen() bool {
+	if IsRouter() {
+		return Exec("iptables -t nat -L ").In("REDIRECT")
+	}
+	return false
 }
 
 func ReleaseRedsocks() {
@@ -385,12 +408,13 @@ func ReleaseRedsocks() {
 					}
 				}
 				fp.Close()
-				if gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
-					Exec("/usr/bin/python /usr/sbin/lcd-btn.py").Println("Start BTN Controller System!")
-				}
+
 			}
 		}
-
+		if gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
+			gs.Str("Start BTN Controller System!").Println()
+			go Exec("/usr/bin/python /usr/sbin/lcd-btn.py")
+		}
 	}
 }
 

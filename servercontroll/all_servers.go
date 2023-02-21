@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/ProxyZ/update"
@@ -16,6 +17,23 @@ import (
 func setupHandler(www string) http.Handler {
 	mux := http.NewServeMux()
 	base.CloseALLPortUFW()
+
+	go func() {
+		for {
+			time.Sleep(30 * time.Minute)
+			if time.Now().Hour() == 0 {
+				gs.Str("Start Refresh All Routes").Println()
+				ids := gs.List[string]{}
+				Tunnels.Every(func(no int, i *base.ProxyTunnel) {
+					ids = append(ids, i.GetConfig().ID)
+				})
+
+				ids.Every(func(no int, i string) {
+					DelProxy(i)
+				})
+			}
+		}
+	}()
 	if len(www) > 0 {
 		mux.HandleFunc("/z-files", func(w http.ResponseWriter, r *http.Request) {
 			fs := gs.List[any]{}

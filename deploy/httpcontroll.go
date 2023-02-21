@@ -21,11 +21,13 @@ import (
 type ClientInterface interface {
 	TryClose()
 	ChangeRoute(string)
-	Socks5Listen() error
+	Socks5Listen(ini ...bool) error
 	HttpListen() error
 	DNSListen()
 	ChangePort(int)
 	GetRoute() string
+	GetRouteLoc() string
+	SetRouteLoc(loc string)
 	SetChangeRoute(f func() string)
 	ChangeProxyType(tp string)
 	GetListenPort() (socks5port, httpport, dnsport int)
@@ -266,7 +268,15 @@ func localSetupHandler() http.Handler {
 							}
 
 						})
+						loc := "Unknow"
 
+						globalClient.Routes.Every(func(no int, i *Onevps) {
+							if i.Host == last {
+								loc = i.Location
+								loc += " " + gs.Str("%5s").F(i.ConnectedQuality.String()).Str()
+							}
+						})
+						globalClient.ClientConf.SetRouteLoc(loc)
 						go globalClient.ClientConf.Socks5Listen()
 						go globalClient.ClientConf.DNSListen()
 
@@ -322,10 +332,12 @@ func localSetupHandler() http.Handler {
 						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
 					}
 					Reply(w, "> China-net", true)
+					ST = false
 					return
 				} else {
 					router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
 					Reply(w, ">"+globalClient.ClientConf.GetRoute(), true)
+					ST = true
 					return
 				}
 
@@ -452,13 +464,29 @@ func localSetupHandler() http.Handler {
 							"last":     host,
 							"proxy":    proxy,
 						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+						loc := "Unknow"
+						globalClient.Routes.Every(func(no int, i *Onevps) {
+							if i.Host == last {
+								loc = i.Location
+								loc += " " + gs.Str("%6s").F(i.ConnectedQuality.String()).Str()
+							}
+						})
+						globalClient.ClientConf.SetRouteLoc(loc)
 						go globalClient.ClientConf.DNSListen()
 						go globalClient.ClientConf.Socks5Listen()
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
 						globalClient.ClientConf.TryClose()
-						go globalClient.ClientConf.ChangeRoute(host.(string))
 						last = host.(string)
+						loc := "Unknow"
+						globalClient.Routes.Every(func(no int, i *Onevps) {
+							if i.Host == last {
+								loc = i.Location
+								loc += " " + gs.Str("%6s").F(i.ConnectedQuality.String()).Str()
+							}
+						})
+						globalClient.ClientConf.SetRouteLoc(loc)
+						go globalClient.ClientConf.ChangeRoute(host.(string))
 						gs.Dict[any]{
 							"name":     user,
 							"password": pwd,
@@ -468,13 +496,40 @@ func localSetupHandler() http.Handler {
 					}
 					Reply(w, "ok", true)
 				} else {
-					Reply(w, "no host", false)
+					gs.Str("No Host So use next").Println("Switch")
+					globalClient.ClientConf.TryClose()
+					var oo *Onevps = nil
+					globalClient.Routes.Every(func(no int, i *Onevps) {
+						if oo == nil {
+							oo = i
+						} else {
+							if i.ConnectedQuality < oo.ConnectedQuality {
+								oo = i
+							}
+						}
+
+					})
+
+					go globalClient.ClientConf.ChangeRoute(oo.Host)
+					// last = host.(string)
+					gs.Dict[any]{
+						"name":     user,
+						"password": pwd,
+						"last":     oo.Host,
+						"proxy":    proxy,
+					}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+					Reply(w, "!"+oo.Host, true)
 				}
 				return
 			case "check":
 				if globalClient.ClientConf != nil {
+					ee := "route"
+					if ST {
+						ee = "route"
+					}
 					Reply(w, gs.Dict[any]{
-						// "global":  IsOpenGlobalState(),
+						"mode":    ee,
+						"loc":     globalClient.ClientConf.GetRouteLoc(),
 						"running": globalClient.ClientConf.GetRoute(),
 					}, true)
 				} else {
@@ -552,4 +607,12 @@ func Recv(r io.Reader) (d gs.Dict[any], err error) {
 		return d, nil
 	}
 	return nil, nil
+}
+
+func GetState() string {
+	if router.IsOpen() {
+		return "router"
+	} else {
+		return ""
+	}
 }

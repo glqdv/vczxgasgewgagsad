@@ -71,9 +71,10 @@ type SmuxorQuicClient interface {
 }
 
 type ClientControl struct {
-	SmuxClients    []SmuxorQuicClient
-	CacheConns     gs.List[net.Conn]
-	nowconf        *base.ProtocolConfig
+	SmuxClients []SmuxorQuicClient
+	CacheConns  gs.List[net.Conn]
+	// nowconf        *base.ProtocolConfig
+	Loc            string
 	ClientNum      int
 	ListenPort     int
 	DnsServicePort int
@@ -146,7 +147,7 @@ func (c *ClientControl) TryClose() {
 	c.closeFlag = true
 	go func() {
 		if c, err := net.Dial("tcp", string(gs.Str("127.0.0.1:%d").F(c.ListenPort))); err == nil {
-			time.Sleep(100 * time.Microsecond)
+			time.Sleep(100 * time.Millisecond)
 			c.Close()
 			gs.Str("Send Close Signal").Println("Close")
 		}
@@ -167,6 +168,14 @@ func (c *ClientControl) GetRoute() string {
 		e = e.Split(":")[0]
 	}
 	return e.Str()
+}
+
+func (c *ClientControl) GetRouteLoc() string {
+	return c.Loc
+}
+
+func (c *ClientControl) SetRouteLoc(loc string) {
+	c.Loc = loc
 }
 
 func (c *ClientControl) ChangeRoute(host string) {
@@ -239,7 +248,7 @@ func (c *ClientControl) ReportErrorProxy() (conf *base.ProtocolConfig) {
 				c.proxyProfiles <- thisconf
 			}
 		default:
-			time.Sleep(100 * time.Microsecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 	w.Wait()
@@ -457,7 +466,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 			case conf = <-c.proxyProfiles:
 				break L
 			default:
-				time.Sleep(100 * time.Microsecond)
+				time.Sleep(100 * time.Millisecond)
 				// gs.Str("Jump").Println("test1.4")
 			}
 
@@ -615,11 +624,15 @@ func (c *ClientControl) HttpListen() (err error) {
 **************************************************************
 CORE ！！！！！！！！
 */
-func (c *ClientControl) Socks5Listen() (err error) {
+func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 	RE_LISTEN := false
+	if inied != nil && inied[0] {
 
-	c.InitializationTunnels()
+	} else {
+		c.InitializationTunnels()
+	}
 
+	var bak *ClientControl
 	if c.ListenPort != 0 {
 		var l net.Listener
 
@@ -641,12 +654,19 @@ func (c *ClientControl) Socks5Listen() (err error) {
 		c.acceptCount = 0
 		lastAutoSwitch := time.Now()
 		gs.Str("Socks5 Start").Color("g", "B", "F").Println("service")
+	MLoop:
 		for {
 			if c.RouteErrCount > 4 {
 				if c.GetNewRoute != nil && !RE_LISTEN {
 					// ### BUG
-
-					break
+					l := c.GetNewRoute()
+					go PrepareRoute(l, c.ListenPort)
+					RE_LISTEN = true
+					select {
+					case bak = <-backupRoute:
+						gs.Str("Use Backup Route").Color("g", "B", "U").Println()
+						break MLoop
+					}
 
 				} else {
 					gs.Str("no getNewRoute Function !!!!!").Color("r", "B").Println()
@@ -718,11 +738,14 @@ func (c *ClientControl) Socks5Listen() (err error) {
 	c.closed = true
 	if RE_LISTEN {
 
-		c.ChangeNewRoute()
-
-		c.closed = false
-		go c.DNSListen()
-		c.Socks5Listen()
+		// c.ChangeNewRoute()
+		if bak != nil {
+			go bak.DNSListen()
+			bak.Socks5Listen()
+		}
+		// c.closed = false
+		// go c.DNSListen()
+		// c.Socks5Listen()
 	}
 
 	return
@@ -945,7 +968,7 @@ func (c *ClientControl) ChangeNewRoute() {
 					case oldc := <-c.proxyProfiles:
 						gs.Str("Clear " + oldc.ID).Println("Switch Route")
 					default:
-						time.Sleep(100 * time.Microsecond)
+						time.Sleep(100 * time.Millisecond)
 					}
 				}
 				c.initProfiles = 0
@@ -976,7 +999,7 @@ func (c *ClientControl) ChangeProxyType(tp string) {
 			select {
 			case <-c.proxyProfiles:
 			default:
-				time.Sleep(100 * time.Microsecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 		c.initProfiles = 0
@@ -1150,45 +1173,44 @@ func (c *ClientControl) InitializationTunnels() {
 		time.Sleep(100 * time.Millisecond)
 		go func(no int, w *sync.WaitGroup) {
 			defer wait.Done()
-			for id := 0; id < 1; id++ {
-				err, conf = c.RebuildSmux(no)
-				p := -1
-				pt := "unknow"
-				if err != nil {
-					l.Lock()
-					msgs[no] = gs.Str('*').Color("r", "F")
-					l.Unlock()
-					if conf != nil {
-						p = conf.ServerPort
-						pt = conf.ProxyType
-					}
-					gs.Str("[%s T:%2d %s in %d] %s \r").F(c.Addr, cc, pt, p, msgs.Join("")).Print()
-					if err != nil {
-						base.ErrToFile("RebuildSmux Er", err)
-					}
 
-				} else {
-					l.Lock()
-					switch conf.ProxyType {
-					case "tls":
-						msgs[no] = gs.Str('*').Color("g", "B")
-					case "kcp":
-						msgs[no] = gs.Str('*').Color("b", "B")
-					case "quic":
-						msgs[no] = gs.Str('*').Color("m", "B")
-					default:
-						msgs[no] = gs.Str('*').Color("w", "B")
-					}
-
-					cc += 1
-					l.Unlock()
-					if conf != nil {
-						p = conf.ServerPort
-						pt = conf.ProxyType
-					}
-					gs.Str("[%s T:%2d %s in %d] %s \r").F(c.Addr, cc, pt, p, msgs.Join("")).Print()
-					break
+			err, conf = c.RebuildSmux(no)
+			p := -1
+			pt := "unknow"
+			if err != nil {
+				l.Lock()
+				msgs[no] = gs.Str('*').Color("r", "F")
+				l.Unlock()
+				if conf != nil {
+					p = conf.ServerPort
+					pt = conf.ProxyType
 				}
+				gs.Str("[%s T:%2d %s in %d] %s \r").F(c.Addr, cc, pt, p, msgs.Join("")).Print()
+				if err != nil {
+					base.ErrToFile("RebuildSmux Er", err)
+				}
+
+			} else {
+				l.Lock()
+				switch conf.ProxyType {
+				case "tls":
+					msgs[no] = gs.Str('*').Color("g", "B")
+				case "kcp":
+					msgs[no] = gs.Str('*').Color("b", "B")
+				case "quic":
+					msgs[no] = gs.Str('*').Color("m", "B")
+				default:
+					msgs[no] = gs.Str('*').Color("w", "B")
+				}
+
+				cc += 1
+				l.Unlock()
+				if conf != nil {
+					p = conf.ServerPort
+					pt = conf.ProxyType
+				}
+				gs.Str("[%s T:%2d %s in %d] %s \r").F(c.Addr, cc, pt, p, msgs.Join("")).Print()
+
 			}
 
 		}(i, &wait)
@@ -1377,7 +1399,7 @@ func (c *ClientControl) AutoSwitchProfile() {
 					c.proxyProfiles <- conf
 				}
 			default:
-				time.Sleep(100 * time.Microsecond)
+				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}

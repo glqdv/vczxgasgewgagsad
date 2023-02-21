@@ -168,6 +168,7 @@ class Controller:
   def loop(self):
     lcd = self.lcd
     try:
+      l = time.time()
       while True:
       # set the cursor to column 0, line 1
         lcd.setCursor(0, 0)
@@ -177,6 +178,8 @@ class Controller:
         lcd.setCursor(0, 1)
         lcd.printout(self.two)
         time.sleep(0.1)
+        if time.time() - l > 4 :
+          Exe.submit(self.get_state)
     except(KeyboardInterrupt):
       lcd.clear()
       del lcd
@@ -224,7 +227,7 @@ class Controller:
     else:
       self.show("Switch next rotue", wait=1)
       try:
-        res = requests.post("http://127.0.0.1:35555/z-route",json.dumps({
+        res = requests.post("http://127.0.0.1:35555/z-api",json.dumps({
           "op":"switch",
         })).json()
         self.show(res["msg"])
@@ -236,7 +239,13 @@ class Controller:
       res = requests.post("http://127.0.0.1:35555/z-api",json.dumps({
         "op":"check",
       })).json()
-      self.show(">"+res["msg"]["running"])
+      e = "X"
+      if res["msg"]["mode"] == "route":
+        e = ">"
+      if e == "X":
+        self.show(e+res["msg"]["running"]+"\n"+"China Net         ")
+      else:
+        self.show(e+res["msg"]["running"]+"\n"+res["msg"]["loc"]+"   ")
     except Exception as e:
       self.show(str(e), wait=4)
   
