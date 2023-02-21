@@ -207,6 +207,9 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 		this.lock.Lock()
 		domainsToAddresses[domain] = record
 		record.IPs.Every(func(no int, i string) {
+			if i == "0.0.0.0" {
+				return
+			}
 			ip2host[i] = domain
 		})
 		this.lock.Unlock()

@@ -523,15 +523,22 @@ func localSetupHandler() http.Handler {
 				return
 			case "check":
 				if globalClient.ClientConf != nil {
-					ee := "route"
+					ee := ""
 					if ST {
 						ee = "route"
+						Reply(w, gs.Dict[any]{
+							"mode":    ee,
+							"loc":     globalClient.ClientConf.GetRouteLoc(),
+							"running": globalClient.ClientConf.GetRoute(),
+						}, true)
+					} else {
+						Reply(w, gs.Dict[any]{
+							"mode":    ee,
+							"loc":     "China",
+							"running": globalClient.ClientConf.GetRoute(),
+						}, true)
+
 					}
-					Reply(w, gs.Dict[any]{
-						"mode":    ee,
-						"loc":     globalClient.ClientConf.GetRouteLoc(),
-						"running": globalClient.ClientConf.GetRoute(),
-					}, true)
 				} else {
 					Reply(w, gs.Dict[any]{
 						// "global":  IsOpenGlobalState(),

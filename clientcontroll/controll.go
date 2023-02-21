@@ -523,9 +523,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		c.LockArea(func() {
 			c.RouteErrCount += 1
 			c.initProfiles -= 1
-			if c.RouteErrCount > 0 {
-				c.RouteErrCount -= 1
-			}
+
 		})
 		return nil
 	}
@@ -534,9 +532,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		c.LockArea(func() {
 			c.RouteErrCount += 1
 			c.initProfiles -= 1
-			if c.RouteErrCount > 0 {
-				c.RouteErrCount -= 1
-			}
+
 		})
 		return nil
 	}
@@ -659,7 +655,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		gs.Str("Socks5 Start").Color("g", "B", "F").Println("service")
 	MLoop:
 		for {
-			if c.RouteErrCount > 4 {
+			if c.RouteErrCount > 20 {
 				if c.GetNewRoute != nil && !RE_LISTEN {
 					// ### BUG
 					l := c.GetNewRoute()
@@ -742,6 +738,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 	if RE_LISTEN {
 
 		// c.ChangeNewRoute()
+		c.CloseDNS()
 		if bak != nil {
 			go bak.DNSListen()
 			bak.Socks5Listen()
@@ -911,7 +908,9 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 			c.ErrCount -= 1
 			c.errorid[eid] -= 1
 		}
-
+		if c.RouteErrCount > 0 {
+			c.RouteErrCount -= 1
+		}
 		if c.acceptCount > 655300 {
 			c.acceptCount = 1
 			c.errCon = 0

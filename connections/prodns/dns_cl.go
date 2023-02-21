@@ -43,7 +43,11 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 			buf.Color("y").Println("Detail")
 		} else {
 			if st, ok := d["status"]; ok && st.(string) == "ok" {
-				d["msg"].(gs.Dict[any]).Every(func(k string, v any) {
+				reply = make(gs.Dict[string])
+				gs.Dict[any](d["msg"].(map[string]any)).Every(func(k string, v any) {
+					if k == "0.0.0.0" {
+						return
+					}
 					reply[k] = v.(string)
 				})
 			}
@@ -72,6 +76,9 @@ func BackgroundBatchSend(server string, ifclose *bool) {
 					if reply := SendDNS(gs.Str(server), c...); len(reply) > 0 {
 						o := gs.Dict[*DNSRecord]{}
 						reply.Every(func(ip, dom string) {
+							if ip == "0.0.0.0" {
+								return
+							}
 							if ol, ok := o[dom]; ok {
 								ol.IPs = ol.IPs.Add(ip)
 							} else {
