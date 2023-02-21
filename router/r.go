@@ -287,14 +287,13 @@ func CheckStatus() (can, startFirewall, status bool) {
 }
 
 func IsRouter() bool {
-	return runtime.GOOS == "linux" && runtime.GOARCH == "arm"
+	return runtime.GOOS == "linux" && gs.Str(runtime.GOARCH).In("arm")
 }
 
 func ReleaseRedsocks() {
-	isv7 := Exec(`cat /proc/cpuinfo`).In("ARMv7")
+	isv7 := runtime.GOARCH != "arm64"
 	gs.Str("Is Armv7:%v").F(isv7).Println()
-
-	if runtime.GOOS == "linux" && runtime.GOARCH == "arm" {
+	if runtime.GOOS == "linux" && gs.Str(runtime.GOARCH).In("arm") {
 
 		if !gs.Str("/etc/init.d/proxy-z").IsExists() {
 			_, fp, err := gs.Str("/etc/init.d/proxy-z").OpenFile(gs.O_NEW_WRITE)
@@ -376,6 +375,22 @@ func ReleaseRedsocks() {
 				}
 			}
 		}
+
+		if !gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
+			_, fp, err := gs.Str("/usr/sbin/lcd-btn.py").OpenFile(gs.O_NEW_WRITE)
+			if err == nil {
+				if len(os.Args) > 0 {
+					if buf, err := asset.Asset("Resources/script/c.py"); err == nil {
+						fp.Write(buf)
+					}
+				}
+				fp.Close()
+				if gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
+					Exec("/usr/bin/python /usr/sbin/lcd-btn.py").Println("Start BTN Controller System!")
+				}
+			}
+		}
+
 	}
 }
 

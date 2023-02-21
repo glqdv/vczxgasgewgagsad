@@ -63,8 +63,11 @@ func main() {
 		servercontroll.SendUpdate(server)
 		os.Exit(0)
 	}
-	if runtime.GOOS == "linux" && runtime.GOARCH == "arm" {
+	if router.IsRouter() {
+		gs.Str("Plat:%s/%s").F(runtime.GOOS, runtime.GOARCH).Color("g").Println()
 		router.ReleaseRedsocks()
+	} else {
+		gs.Str("Plat:%s/%s").F(runtime.GOOS, runtime.GOARCH).Color("g").Println()
 	}
 
 	if daemon {

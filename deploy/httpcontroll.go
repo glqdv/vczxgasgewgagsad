@@ -82,6 +82,7 @@ func localSetupHandler() http.Handler {
 	user := ""
 	pwd := ""
 	last := ""
+	ST := false
 	proxy := ""
 	go func() {
 		inter := time.NewTicker(10 * time.Minute)
@@ -307,6 +308,27 @@ func localSetupHandler() http.Handler {
 		if op, ok := d["op"]; ok {
 			gs.S(op).Println("z-router")
 			switch op {
+			case "open/close":
+				if ST {
+					router.StopFirewall()
+					proxy = ""
+					Reply(w, "stop", true)
+					if user != "" && pwd != "" && last != "" {
+						gs.Dict[any]{
+							"name":     user,
+							"password": pwd,
+							"last":     last,
+							"proxy":    "",
+						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+					}
+					Reply(w, "> China-net", true)
+					return
+				} else {
+					router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
+					Reply(w, ">"+globalClient.ClientConf.GetRoute(), true)
+					return
+				}
+
 			case "start":
 				router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
 				if user != "" && pwd != "" && last != "" {
@@ -452,11 +474,14 @@ func localSetupHandler() http.Handler {
 			case "check":
 				if globalClient.ClientConf != nil {
 					Reply(w, gs.Dict[any]{
-						"global":  IsOpenGlobalState(),
+						// "global":  IsOpenGlobalState(),
 						"running": globalClient.ClientConf.GetRoute(),
 					}, true)
 				} else {
-					Reply(w, "err", false)
+					Reply(w, gs.Dict[any]{
+						// "global":  IsOpenGlobalState(),
+						"running": "China-net",
+					}, true)
 				}
 				return
 

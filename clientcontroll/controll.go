@@ -644,7 +644,7 @@ func (c *ClientControl) Socks5Listen() (err error) {
 		for {
 			if c.RouteErrCount > 4 {
 				if c.GetNewRoute != nil && !RE_LISTEN {
-					### BUG
+					// ### BUG
 
 					break
 
