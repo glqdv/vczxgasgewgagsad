@@ -2,6 +2,7 @@ package servercontroll
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -130,7 +131,18 @@ func setupHandler(www string) http.Handler {
 	})
 
 	mux.HandleFunc("/z-dns", func(w http.ResponseWriter, r *http.Request) {
-
+		r.ParseForm()
+		hostsStr := r.Form.Get("hosts")
+		res := gs.Dict[any]{}
+		for _, host := range gs.Str(hostsStr).Split(",") {
+			gs.Str(host).Println("Query DNS")
+			if ips, err := net.LookupHost(host.Str()); err == nil {
+				for _, _ip := range ips {
+					res[_ip] = host
+				}
+			}
+		}
+		Reply(w, res, true)
 	})
 
 	mux.HandleFunc("/z-ufw-close-all", func(w http.ResponseWriter, r *http.Request) {

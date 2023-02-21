@@ -21,6 +21,7 @@ var (
 )
 
 type DNSRecord struct {
+	Host    string
 	IPs     gs.List[string]
 	timeout time.Time
 }
@@ -110,7 +111,7 @@ func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
 	return false
 }
 
-func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
+func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool {
 	domain := msg.Question[0].Name
 	if gs.Str(domain).EndsWith(".lan.") {
 		oldClass := msg.Question[0].Qclass
@@ -184,6 +185,44 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 	}
 
 	return false
+}
+
+func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
+	domain := msg.Question[0].Name
+
+	if gs.Str(domain).EndsWith(".lan.") {
+		oldClass := msg.Question[0].Qclass
+		msg.Question[0] = dns.Question{
+			Name:   string(gs.Str(domain).Replace(".lan.", ".")),
+			Qtype:  dns.TypeA,
+			Qclass: oldClass,
+		}
+	}
+	domain = msg.Question[0].Name
+
+	record := Reply(domain)
+	record.timeout = time.Now().Add(5 * time.Minute)
+
+	if record.IPs.Count() > 0 {
+		this.lock.Lock()
+		domainsToAddresses[domain] = record
+		record.IPs.Every(func(no int, i string) {
+			ip2host[i] = domain
+		})
+		this.lock.Unlock()
+	}
+	record.IPs.Every(func(no int, ip string) {
+		if ip != "0.0.0.0" {
+			msg.Answer = append(msg.Answer, &dns.A{
+				Hdr: dns.RR_Header{Name: domain, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 80},
+				A:   net.ParseIP(ip),
+			})
+		}
+	})
+
+	w.WriteMsg(&msg)
+	return true
+
 }
 
 func (this *DNSHandler) ResolveCache(w dns.ResponseWriter, msg dns.Msg) bool {

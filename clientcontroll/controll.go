@@ -605,6 +605,8 @@ func (c *ClientControl) DNSListen() {
 		for !c.inited {
 			time.Sleep(1 * time.Second)
 		}
+
+		go prodns.BackgroundBatchSend(c.Addr.Str(), &c.closeFlag)
 		gs.Str("Start DNS (%s)").F(gs.Str(":%d").F(port).Color("g")).Println("dns")
 		err := dd.ListenAndServe()
 
