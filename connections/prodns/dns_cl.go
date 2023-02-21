@@ -31,17 +31,24 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 
 	// tq = true
 	tq.Timeout = 4
-	tq.Println("end")
+	// tq.Println("end")
 	if res := tq.Go(); res.Err != nil {
 		gs.Str(res.Err.Error()).Color("r").Println("dns query err")
 	} else {
 		buf := res.Body()
-		buf.Println("Reply DNS")
-		err := json.Unmarshal(buf.Bytes(), &reply)
+		d := gs.Dict[any]{}
+		err := json.Unmarshal(buf.Bytes(), &d)
 		if err != nil {
 			gs.Str(err.Error()).Color("r").Println()
 			buf.Color("y").Println("Detail")
+		} else {
+			if st, ok := d["status"]; ok && st.(string) == "ok" {
+				d["msg"].(gs.Dict[any]).Every(func(k string, v any) {
+					reply[k] = v.(string)
+				})
+			}
 		}
+
 	}
 	return
 }

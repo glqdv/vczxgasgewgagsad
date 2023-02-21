@@ -136,15 +136,18 @@ func setupHandler(www string) http.Handler {
 			Reply(w, err, false)
 			return
 		}
-		gs.Str("DNS ???").Println("Query DNS")
+		// gs.Str("DNS ???").Println("Query DNS")
 
 		if hostsStr, ok := d["hosts"]; ok {
 			res := gs.Dict[any]{}
 			for _, host := range gs.Str(hostsStr.(string)).Split(",") {
 				gs.Str(host).Println("Query DNS")
-				if ips, err := net.LookupHost(host.Str()); err == nil {
+				if ips, err := net.LookupIP(host.Str()); err == nil {
 					for _, _ip := range ips {
-						res[_ip] = host
+						if _ip.To4() != nil {
+							res[_ip.String()] = host
+						}
+
 					}
 				}
 			}
