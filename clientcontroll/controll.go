@@ -33,6 +33,7 @@ var (
 func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 
 	if r, _ := servercontroll.TestServer(server); r > 5*time.Minute {
+		gs.Str("Test Failed").Println()
 		os.Exit(0)
 		return
 	} else {

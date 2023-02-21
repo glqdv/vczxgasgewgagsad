@@ -53,6 +53,7 @@ func TestServer(server string) (t time.Duration, IDS gs.List[string]) {
 			}
 		})
 	} else {
+		gs.Str("err:" + err.Error()).Color("r").Println("TestServer")
 		return time.Duration(30000) * time.Hour, IDS
 	}
 	if !ok {
