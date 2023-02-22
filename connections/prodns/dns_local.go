@@ -45,13 +45,13 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	switch r.Question[0].Qtype {
 	case dns.TypeA:
 		msg.Authoritative = true
-
+		domain := msg.Question[0].Name
 		if this.ResolveCache(w, msg) {
 			return
 		}
-
+		gs.Str(domain).Println("dns query")
 		if isRouter {
-			domain := msg.Question[0].Name
+
 			if IsLocal(domain) {
 				if this.ResolveLocal(w, msg) {
 					return

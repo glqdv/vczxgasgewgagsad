@@ -85,6 +85,9 @@ func localSetupHandler() http.Handler {
 	pwd := ""
 	last := ""
 	ST := false
+	if router.IsOpen() {
+		ST = true
+	}
 	proxy := ""
 	go func() {
 		inter := time.NewTicker(10 * time.Minute)
@@ -499,11 +502,16 @@ func localSetupHandler() http.Handler {
 					gs.Str("No Host So use next").Println("Switch")
 					globalClient.ClientConf.TryClose()
 					var oo *Onevps = nil
+					nowhost := globalClient.ClientConf.GetRoute()
+					nowix := -1
 					globalClient.Routes.Every(func(no int, i *Onevps) {
+						if i.Host == nowhost {
+							nowix = no
+						}
 						if oo == nil {
 							oo = i
 						} else {
-							if i.ConnectedQuality < oo.ConnectedQuality {
+							if no == nowix+1 {
 								oo = i
 							}
 						}

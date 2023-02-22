@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"net"
-	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"github.com/quic-go/quic-go"
@@ -22,9 +21,8 @@ func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
 	qc = new(QuicClient)
 	qc.addr = config.RemoteAddr()
 	qc.tlsconfig, _ = config.GetQuicConfig()
-	cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	// gs.Str("test be").Println("quic config")
-	conn, err := quic.DialAddrContext(cc, qc.addr, qc.tlsconfig, nil)
+
+	conn, err := quic.DialAddrContext(context.Background(), qc.addr, qc.tlsconfig, nil)
 	// conn, err := quic.DialAddr(qc.addr, tlsconfig, nil)
 
 	if err != nil {
@@ -47,12 +45,13 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	var stream quic.Stream
 	// gs.Str("open stream !!").Println()
 	// cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	stream, err = conn.OpenStream()
+	// conn.
+	stream, err = conn.OpenStreamSync(context.Background())
 
 	if err != nil {
 
-		cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
-		if conn, err := quic.DialAddrContext(cc, q.addr, q.tlsconfig, nil); err != nil {
+		// cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		if conn, err = quic.DialAddrContext(context.Background(), q.addr, q.tlsconfig, nil); err != nil {
 			q.isclosed = true
 			q.isclosed = true
 			return nil, errors.New("[try agin quic new connect err]: " + err.Error())

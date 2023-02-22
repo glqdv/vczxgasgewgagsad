@@ -20,7 +20,7 @@ restart() {
 }
 
 start() {
-
+    sysctl -w net.core.rmem_max=21299200;
     HOME="/root" $PROG -http -d  2>&1  1>/var/log/proxy-z.log
     if [ -f /usr/bin/python ] ; then
         /usr/bin/python /usr/sbin/lcd-btn.py

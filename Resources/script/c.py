@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import time
+import sys
 import json
 from smbus import SMBus
 import requests
@@ -70,7 +71,7 @@ class LCD1602:
 
   def clear(self):
     self.command(LCD_CLEARDISPLAY)
-    time.sleep(0.002)
+    time.sleep(0.02)
   def printout(self,arg):
     if(isinstance(arg,int)):
       arg=str(arg)
@@ -139,7 +140,7 @@ def button(pin_num, callback):
     ww = "/sys/class/gpio/gpio"+str(pin_num) + "/value"
     print("Init :" + ww)
     while 1:
-      time.sleep(0.1)
+      time.sleep(0.2)
       with open(ww,"r") as fp:
         if fp.read().strip() == "1":
           if not st_stat:
@@ -177,7 +178,7 @@ class Controller:
         lcd.printout(self.one)
         lcd.setCursor(0, 1)
         lcd.printout(self.two)
-        time.sleep(0.1)
+        time.sleep(1)
         if time.time() - l > 4 :
           Exe.submit(self.get_state)
     except(KeyboardInterrupt):
@@ -248,12 +249,28 @@ class Controller:
       else:
         self.show(e+res["msg"]["running"]+"\n"+res["msg"]["loc"]+"   ")
     except Exception as e:
-      self.show(str(e), wait=4)
+      self.show("Please Login!\n.2.1:35555/z-login")
   
+  def openClose(self,utime):
+    print("Long time --- to close")
+    self.show("Switch To      \nChina/World               ")
+    try:
+      res = requests.post("http://127.0.0.1:35555/z-route",json.dumps({
+        "op":"open/close",
+      })).json()
+      self.show(res["msg"])
+    except Exception as e:
+      self.show(str(e), wait=4)
 
 if __name__ == "__main__":
+  import os
+  try:
+    if "python" in os.popen("ps | grep lcd-btn.py").read():
+      sys.exit(0)
+  except:
+    pass
   con = Controller()
-  print("???")
   con.regist_btn(26, con.switch)
+  con.regist_btn(20, con.openClose)
 
   con.loop()

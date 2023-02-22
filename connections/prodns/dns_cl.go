@@ -14,7 +14,7 @@ var (
 )
 
 func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
-	ip2host = make(gs.Dict[string])
+	// ip2host = make(gs.Dict[string])
 
 	if !server.StartsWith("https://") {
 		server = "https://" + server
@@ -114,12 +114,13 @@ func Reply(domain string) *DNSRecord {
 		select {
 		case one := <-dnsReplyCache:
 			if one.Host == domain {
+				gs.Str(domain).Add(gs.Str(one.IPs[0]).Color("g")).Println("dns")
 				return one
 			} else {
 				dnsReplyCache <- one
 			}
 		default:
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 		}
 
 	}

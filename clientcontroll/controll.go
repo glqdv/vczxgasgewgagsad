@@ -740,6 +740,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		// c.ChangeNewRoute()
 		c.CloseDNS()
 		if bak != nil {
+			c.SetRouteLoc(bak.GetRouteLoc())
 			go bak.DNSListen()
 			bak.Socks5Listen()
 		}

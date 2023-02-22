@@ -52,7 +52,7 @@ func AutoLogin(auth ...string) {
 		}
 	}
 	gs.Str("User:%s Pwd:%s / last: %s / if Proxy : %s").F(username, pwd, last, proxy).Color("g", "B", "F").Println("Check")
-	time.Sleep(3 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	if con {
 		gs.Str("Auto login").Println()

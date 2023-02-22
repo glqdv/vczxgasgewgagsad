@@ -413,7 +413,10 @@ func ReleaseRedsocks() {
 		}
 		if gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
 			gs.Str("Start BTN Controller System!").Println()
-			go Exec("/usr/bin/python /usr/sbin/lcd-btn.py")
+			if !Exec("ps ").In("/usr/sbin/lcd-btn.py") {
+				go Exec("/usr/bin/python /usr/sbin/lcd-btn.py")
+			}
+
 		}
 	}
 }
