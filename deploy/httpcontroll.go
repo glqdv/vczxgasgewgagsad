@@ -92,9 +92,21 @@ func localSetupHandler() http.Handler {
 	proxy := ""
 	go func() {
 		inter := time.NewTicker(10 * time.Minute)
+		dnsCheck := time.NewTicker(30 * time.Second)
 		for {
 			select {
+			case <-dnsCheck.C:
+				if globalClient.ClientConf != nil {
+					if !router.IsDNSRunning() {
+						gs.Str("DNS Service is Closed").Color("r").Println()
+						go globalClient.ClientConf.DNSListen()
+					} else {
+						gs.Str("DNS Service is RUNNING").Color("g").Println()
+					}
+
+				}
 			case <-inter.C:
+
 				if globalClient.Routes.Count() > 0 {
 					globalClient.Routes = TestRoutes(globalClient.Routes)
 					globalClient.Routes.Every(func(no int, i *Onevps) {
@@ -370,13 +382,14 @@ func localSetupHandler() http.Handler {
 							"proxy":    "",
 						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
 					}
-					Reply(w, "> China-net", true)
+					// Reply(w, "> China-net", true)
 					ST = false
 					return
 				} else {
 					router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
-					Reply(w, ">"+globalClient.ClientConf.GetRoute(), true)
 					ST = true
+					Reply(w, ">"+globalClient.ClientConf.GetRoute(), true)
+
 					return
 				}
 
@@ -536,12 +549,19 @@ func localSetupHandler() http.Handler {
 					Reply(w, "ok", true)
 				} else {
 					gs.Str("No Host So use next").Println("Switch")
-					globalClient.ClientConf.TryClose()
-					var oo *Onevps = nil
-					nowhost := globalClient.ClientConf.GetRoute()
+					nowhost := ""
 					nowix := -1
+					if globalClient.ClientConf != nil {
+						// Reply(w, "no init ", true)
+						globalClient.ClientConf.TryClose()
+						nowhost = globalClient.ClientConf.GetRoute()
+						// return
+					} else {
+						nowhost = string(globalClient.Routes[0].Host)
+					}
+					var oo *Onevps = nil
 					loc := "unknow"
-
+					gs.Str("Choose:" + nowhost).Println("Switch")
 					globalClient.Routes.Every(func(no int, i *Onevps) {
 						if i.Host == nowhost {
 							nowix = no
@@ -581,7 +601,7 @@ func localSetupHandler() http.Handler {
 						}, true)
 					} else {
 						Reply(w, gs.Dict[any]{
-							"mode":    ee,
+							"mode":    "",
 							"loc":     "China",
 							"running": globalClient.ClientConf.GetRoute(),
 						}, true)

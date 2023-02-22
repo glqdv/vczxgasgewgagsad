@@ -2,6 +2,7 @@ package clientcontroll
 
 import (
 	"net"
+	"net/url"
 	"runtime"
 
 	"gitee.com/dark.H/ProxyZ/connections/prodns"
@@ -71,4 +72,35 @@ func (c *ClientControl) inCN(host gs.Str) bool {
 		}
 	}
 	return false
+}
+
+func Wrap(addr string) string {
+	u, err := url.Parse(addr)
+	if err != nil {
+		if !gs.Str(addr).In("://") {
+			addr = "https://" + addr
+		}
+		if !gs.Str(addr).EndsWith(":55443") {
+			addr += ":55443"
+		}
+	} else {
+		if u.Scheme == "" {
+			addr = "https://" + addr
+		}
+		if u.Port() == "" {
+			addr += ":55443"
+		}
+	}
+
+	return addr
+}
+
+func WrapIPPort(addr string) string {
+	u, err := url.Parse(addr)
+	if err != nil {
+		gs.Str("Err to parse :" + addr).Color("r").Println("WrapIPPort")
+		return err.Error()
+	}
+
+	return gs.Str(u.Host).Split(":")[0].Str()
 }

@@ -110,6 +110,8 @@ func Query(domain string) {
 }
 
 func Reply(domain string) *DNSRecord {
+	st := time.Now().Add(7 * time.Second)
+loop:
 	for {
 		select {
 		case one := <-dnsReplyCache:
@@ -121,7 +123,16 @@ func Reply(domain string) *DNSRecord {
 			}
 		default:
 			time.Sleep(50 * time.Millisecond)
+			if time.Now().After(st) {
+				break loop
+			}
 		}
 
 	}
+	o := &DNSRecord{
+		Host: domain,
+	}
+	gs.Str(domain).Add(gs.Str(" timeout").Color("r")).Println("dns")
+	return o
+
 }

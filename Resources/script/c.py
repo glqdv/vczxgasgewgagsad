@@ -163,22 +163,50 @@ def button(pin_num, callback):
 
 class Controller:
   def __init__(self):
-    self.lcd=LCD1602(16,2)
+    self.lcd=None
     self.one = "Hello world"
     self.two = ".(* *). ?"
     self.last_push = time.time()
 
   def loop(self):
-    lcd = self.lcd
+    is_close = False
+    lcd = None
     try:
-      l = time.time()
-      while True:
-      # set the cursor to column 0, line 1
-        time.sleep(1)
-        if time.time() - l > 2 :
-          Exe.submit(self.get_state)
-        
-    except(KeyboardInterrupt):
+      while 1:
+        if is_close:
+          break
+        try:
+          
+          try:
+            self.lcd=LCD1602(16,2)
+            lcd = self.lcd
+          except Exception:
+            time.sleep(1)
+            continue
+          print("start loop")
+          while True:
+            try:
+            # set the cursor to column 0, line 1
+              time.sleep(0.7)
+              # print("get state")
+              # if time.time() - l > 4 :
+              self.get_state()
+                # l = time.time()
+              
+            except(KeyboardInterrupt):
+              is_close = True
+              break
+        except Exception:
+          # lcd.clear()
+          # del lcd
+          try:
+            self.lcd=LCD1602(16,2)
+            lcd = self.lcd
+          except Exception:
+            time.sleep(1)
+            continue
+
+    finally:
       lcd.clear()
       del lcd
 
@@ -251,12 +279,12 @@ class Controller:
       if res["msg"]["mode"] == "route":
         e = ">"
       if e == "X":
-        self.get_my_ip()+"\n"+"China Net         ")
+        self.show(self.get_my_ip()+"\n"+"China "+time.ctime()[11:19])
       else:
         self.show(e+res["msg"]["running"]+"\n"+res["msg"]["loc"]+"   ")
     except Exception as e:
       print(e)
-      self.show("Please Login!\n"+ time.ctime()[:16])
+      self.show("System booting!\n"+ time.ctime()[4:20])
   
   def openClose(self,utime):
     if time.time() - self.last_push < 2:
@@ -269,9 +297,12 @@ class Controller:
       res = requests.post("http://127.0.0.1:35555/z-route",json.dumps({
         "op":"open/close",
       })).json()
+      # print(res.text)
       self.show(res["msg"])
     except Exception as e:
-      self.show(str(e), wait=4)
+      print(e)
+      self.show(str(e))
+
 
   def get_my_ip(self):
     t = requests.get("https://myip.ipip.net").text

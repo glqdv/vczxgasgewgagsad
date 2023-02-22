@@ -109,13 +109,8 @@ type ClientControl struct {
 }
 
 func NewClientControll(addr string, listenport int) *ClientControl {
-	if !gs.Str(addr).In(":") {
-		addr += ":55443"
-	}
-	if !gs.Str(addr).In("://") {
-		addr = "https://" + addr
-	}
-
+	addr = Wrap(addr)
+	gs.Str("New Client Controll:" + addr).Println()
 	c := &ClientControl{
 		Addr:           gs.Str(addr),
 		ListenPort:     listenport,
@@ -138,6 +133,8 @@ func (c *ClientControl) Init() {
 	c.initProfiles = 0
 	c.errorid = make(gs.Dict[int])
 	c.ErrCount = 0
+	c.inited = false
+	c.dnsservice = false
 	c.IsRunning = false
 	c.RouteErrCount = 0
 }
@@ -199,8 +196,9 @@ func (c *ClientControl) SetRouteLoc(loc string) {
 func (c *ClientControl) ChangeRoute(host string) bool {
 
 	if c.closeFlag {
-		c.Addr = gs.Str(host)
 
+		c.Addr = gs.Str(Wrap(host))
+		gs.Str("Change Client Controll:" + c.Addr).Println()
 	} else {
 		gs.Str("server is not closed !").Color("r").Println()
 	}
@@ -227,6 +225,7 @@ func (c *ClientControl) ChangeRoute(host string) bool {
 
 	if c.CloseDNS != nil {
 		c.CloseDNS()
+		gs.Str("Close DNS Service ").Color("g").Println()
 	}
 	c.Addr = gs.Str(host)
 	gs.Str("server closed !").Color("g").Println()
@@ -310,20 +309,8 @@ func (c *ClientControl) ErrSoGetNew(id string, ernum int) {
 		return
 	}
 	gs.Str(c.Addr.Str()+" Need Re Proxy Change!  ProxyType: "+id).Color("c", "B").Println("Route")
-	if c.Addr.StartsWith("tls://") {
-		addr = c.Addr.Split("://")[1].Str()
-		// useTls = true
-	} else if c.Addr.In("https://") {
-		addr = c.Addr.Split("://")[1].Str()
-		// useTls = true
-	} else if c.Addr.In("://") {
-		addr = c.Addr.Split("://")[1].Str()
-	} else {
-		addr = c.Addr.Str()
-	}
-	if !gs.Str(addr).EndsWith(":55443") {
-		addr += ":55443"
-	}
+	addr = Wrap(c.Addr.Str())
+	gs.Str("Err Get New :" + addr).Println()
 	var reply gs.Str
 	data := gs.Dict[any]{
 		"ID": id,
@@ -389,18 +376,9 @@ func (c *ClientControl) GetListenPort() (socks5port, httpport, dnsport int) {
 }
 
 func (c *ClientControl) ConfigServer(name, val string) bool {
-	var addr string
-	if c.Addr.StartsWith("tls://") {
-		addr = c.Addr.Split("://")[1].Str()
 
-	} else if c.Addr.StartsWith("https://") {
-		addr = c.Addr.Split("://")[1].Str()
-
-	} else if c.Addr.In("://") {
-		addr = c.Addr.Split("://")[1].Str()
-	} else {
-		addr = c.Addr.Str()
-	}
+	addr := Wrap(c.Addr.Str())
+	gs.Str("Config Server:" + addr).Println()
 	var reply gs.Str
 	var data gs.Dict[any]
 	data = nil
@@ -409,7 +387,7 @@ func (c *ClientControl) ConfigServer(name, val string) bool {
 		"val":  val,
 	}
 	var err error
-	reply, err = servercontroll.HTTPSPost("https://"+addr+"/z-set", data)
+	reply, err = servercontroll.HTTPSPost(addr+"/z-set", data)
 	if err != nil {
 
 		c.LockArea(func() {
@@ -426,21 +404,11 @@ func (c *ClientControl) ConfigServer(name, val string) bool {
 }
 
 func (c *ClientControl) ClearAllRoute() bool {
-	var addr string
-	if c.Addr.StartsWith("tls://") {
-		addr = c.Addr.Split("://")[1].Str()
-
-	} else if c.Addr.StartsWith("https://") {
-		addr = c.Addr.Split("://")[1].Str()
-
-	} else if c.Addr.In("://") {
-		addr = c.Addr.Split("://")[1].Str()
-	} else {
-		addr = c.Addr.Str()
-	}
+	addr := Wrap(c.Addr.Str())
+	gs.Str("Clear All Route:" + addr).Println()
 	var reply gs.Str
 	var err error
-	reply, err = servercontroll.HTTPSGet("https://" + addr + "/__close-all")
+	reply, err = servercontroll.HTTPSGet(addr + "/__close-all")
 	if err != nil {
 
 		c.LockArea(func() {
@@ -458,21 +426,11 @@ func (c *ClientControl) ClearAllRoute() bool {
 }
 
 func (c *ClientControl) ClearALLOpenUFW() bool {
-	var addr string
-	if c.Addr.StartsWith("tls://") {
-		addr = c.Addr.Split("://")[1].Str()
-
-	} else if c.Addr.StartsWith("https://") {
-		addr = c.Addr.Split("://")[1].Str()
-
-	} else if c.Addr.In("://") {
-		addr = c.Addr.Split("://")[1].Str()
-	} else {
-		addr = c.Addr.Str()
-	}
+	addr := Wrap(c.Addr.Str())
+	gs.Str("Clear All Open UFW:" + addr).Println()
 	var reply gs.Str
 	var err error
-	reply, err = servercontroll.HTTPSGet("https://" + addr + "/z-ufw-close")
+	reply, err = servercontroll.HTTPSGet(addr + "/z-ufw-close")
 	if err != nil {
 
 		c.LockArea(func() {
@@ -520,19 +478,10 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		// c.proxyProfiles <- conf
 		c.initProfiles += 1
 	})
-	var addr string
+	addr := Wrap(c.Addr.Str())
+	// gs.Str("Get Proxy Profile: '" + addr + "/proxy-get'").Println()
 	useTls := true
-	if c.Addr.StartsWith("tls://") {
-		addr = c.Addr.Split("://")[1].Str()
-		useTls = true
-	} else if c.Addr.StartsWith("https://") {
-		addr = c.Addr.Split("://")[1].Str()
-		useTls = true
-	} else if c.Addr.In("://") {
-		addr = c.Addr.Split("://")[1].Str()
-	} else {
-		addr = c.Addr.Str()
-	}
+
 	var reply gs.Str
 	var data gs.Dict[any]
 	data = nil
@@ -545,9 +494,9 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	var err error
 	for _i := 0; _i < 5; _i++ {
 		if useTls {
-			reply, err = servercontroll.HTTPSPost("https://"+addr+"/proxy-get", data)
+			reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data)
 		} else {
-			reply, err = servercontroll.HTTP3Post("https://"+addr+"/proxy-get", data)
+			reply, err = servercontroll.HTTP3Post(addr+"/proxy-get", data)
 		}
 		if err != nil {
 
@@ -599,7 +548,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		}
 		// gs.Str("read 3").Color("g").Println("test1.7")
 		if conf.Server == "0.0.0.0" {
-			conf.Server = gs.Str(addr).Split(":")[0].Trim()
+			conf.Server = WrapIPPort(addr)
 		}
 
 		// gs.Str("read 4").Color("g").Println("test1.7")
@@ -1128,7 +1077,7 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 			qc, err := proquic.NewQuicClient(conf)
 			if err != nil {
 
-				return errors.New("[quic-rebuild] " + err.Error()), conf
+				return errors.New("[quic-rebuild] " + err.Error() + conf.RemoteAddr()), conf
 			}
 			c.SmuxClients = append(c.SmuxClients, qc)
 		} else {
@@ -1138,7 +1087,7 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 			}
 			qc, err := proquic.NewQuicClient(conf)
 			if err != nil {
-				return errors.New("[quic-rebuild] " + err.Error()), conf
+				return errors.New("[quic-rebuild] " + err.Error() + conf.RemoteAddr()), conf
 			}
 			c.lock.Lock()
 			c.SmuxClients[no] = nil

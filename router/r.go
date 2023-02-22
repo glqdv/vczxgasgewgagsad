@@ -442,3 +442,7 @@ func Exec(str gs.Str) gs.Str {
 	cmd.Run()
 	return gs.Str(outbuffer.String())
 }
+
+func IsDNSRunning() bool {
+	return Exec("netstat -anup").In("60053")
+}
