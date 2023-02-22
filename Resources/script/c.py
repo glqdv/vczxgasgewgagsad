@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 import sys
+import os
 import json
 from smbus import SMBus
 import requests
@@ -181,6 +182,7 @@ class Controller:
         time.sleep(1)
         if time.time() - l > 4 :
           Exe.submit(self.get_state)
+          
     except(KeyboardInterrupt):
       lcd.clear()
       del lcd
@@ -262,11 +264,17 @@ class Controller:
     except Exception as e:
       self.show(str(e), wait=4)
 
+
+def kill_other_lcd():
+  this_id = os.getpid()
+  pids = os.popen("ps | grep lcd-btn.py | grep -v grep | awk '{print $1}' | xargs").read()
+  if this_id in pids:
+    pids = pids.remove(this_id)
+  os.popen("kill -9 {}".format(pids)).read()
+
 if __name__ == "__main__":
-  import os
   try:
-    if "python" in os.popen("ps | grep lcd-btn.py").read():
-      sys.exit(0)
+    kill_other_lcd()
   except:
     pass
   con = Controller()
