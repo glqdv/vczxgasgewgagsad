@@ -52,16 +52,18 @@ func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 
 }
 
-func PrepareRoute(server string, l int) {
+func PrepareRoute(server string, l int) bool {
 	cli := NewClientControll(server, l)
-	cli.InitializationTunnels()
+	if cli.InitializationTunnels() {
+		select {
+		case backupRoute <- cli:
 
-	select {
-	case backupRoute <- cli:
+		default:
 
-	default:
-
+		}
+		return true
 	}
+	return false
 
 }
 
@@ -93,6 +95,7 @@ type ClientControl struct {
 	Usevpn         bool
 	dnsservice     bool
 	inited         bool
+	IsRunning      bool
 	vpnHandler     *vpn.VPNHandler
 	setTimer       *time.Timer
 	failedHost     Set[string]
@@ -129,6 +132,16 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 	return c
 }
 
+func (c *ClientControl) Init() {
+	c.lastUse = -1
+	c.proxyProfiles = make(chan *base.ProtocolConfig, 10)
+	c.initProfiles = 0
+	c.errorid = make(gs.Dict[int])
+	c.ErrCount = 0
+	c.IsRunning = false
+	c.RouteErrCount = 0
+}
+
 func RecvMsg(reply gs.Str) (di any, o bool) {
 	d := reply.Json()
 	if c, ok := d["status"]; ok {
@@ -161,6 +174,7 @@ func (c *ClientControl) SetChangeRoute(f func() string) {
 }
 
 func (c *ClientControl) GetRoute() string {
+
 	e := c.Addr
 	if e.In("://") {
 		e = e.Split("://")[1]
@@ -172,6 +186,9 @@ func (c *ClientControl) GetRoute() string {
 }
 
 func (c *ClientControl) GetRouteLoc() string {
+	if !c.IsRunning {
+		return "Connecting ...."
+	}
 	return c.Loc
 }
 
@@ -179,7 +196,7 @@ func (c *ClientControl) SetRouteLoc(loc string) {
 	c.Loc = loc
 }
 
-func (c *ClientControl) ChangeRoute(host string) {
+func (c *ClientControl) ChangeRoute(host string) bool {
 
 	if c.closeFlag {
 		c.Addr = gs.Str(host)
@@ -193,15 +210,35 @@ func (c *ClientControl) ChangeRoute(host string) {
 			break
 		}
 	}
+	c.LockArea(func() {
+		gs.Str("Clear All Session").Color("g").Println()
+		for _i := 0; _i < len(c.SmuxClients); _i++ {
+			if c.SmuxClients[_i] != nil {
+				c.SmuxClients[_i].Close()
+				c.SmuxClients[_i] = nil
+			}
+
+		}
+	})
 
 	time.Sleep(1 * time.Second)
-	gs.Str("server closed !").Color("g").Println()
+
 	prodns.Clear()
+
 	if c.CloseDNS != nil {
 		c.CloseDNS()
 	}
+	c.Addr = gs.Str(host)
+	gs.Str("server closed !").Color("g").Println()
+	c.Init()
+
 	go c.DNSListen()
-	c.Socks5Listen()
+	gs.Str("Start New route:" + c.Addr).Color("g").Println()
+	if err := c.Socks5Listen(); err == ErrRouteISBreak {
+		return false
+	} else {
+		return true
+	}
 }
 
 func (c *ClientControl) ChangePort(port int) {
@@ -624,11 +661,14 @@ func (c *ClientControl) HttpListen() (err error) {
 CORE ！！！！！！！！
 */
 func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
+
 	RE_LISTEN := false
 	if inied != nil && inied[0] {
 
 	} else {
-		c.InitializationTunnels()
+		if !c.InitializationTunnels() {
+			return ErrRouteISBreak
+		}
 	}
 
 	var bak *ClientControl
@@ -652,6 +692,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		c.closed = false
 		c.acceptCount = 0
 		lastAutoSwitch := time.Now()
+		c.IsRunning = true
 		gs.Str("Socks5 Start").Color("g", "B", "F").Println("service")
 	MLoop:
 		for {
@@ -659,7 +700,18 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				if c.GetNewRoute != nil && !RE_LISTEN {
 					// ### BUG
 					l := c.GetNewRoute()
-					go PrepareRoute(l, c.ListenPort)
+					go func() {
+						for {
+							if !PrepareRoute(l, c.ListenPort) {
+								gs.Str("Wait 2 s try again!").Println()
+								time.Sleep(2 * time.Second)
+								l = c.GetNewRoute()
+							} else {
+								break
+							}
+
+						}
+					}()
 					RE_LISTEN = true
 					select {
 					case bak = <-backupRoute:
@@ -1135,7 +1187,7 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 			proxyType = _c.ProxyType
 		}
 		if err != nil {
-			return nil, err, id, proxyType
+			return nil, errors.New(err.Error() + " in rebuild "), id, proxyType
 		}
 		con, err = e.NewConnnect()
 	} else {
@@ -1164,13 +1216,14 @@ func (c *ClientControl) CloseWriter() {
 	}
 }
 
-func (c *ClientControl) InitializationTunnels() {
+func (c *ClientControl) InitializationTunnels() (use bool) {
 	wait := sync.WaitGroup{}
 	l := sync.RWMutex{}
 	msgs := gs.Str("*").Color("y").Add("|").Repeat(c.ClientNum).Slice(0, -1).Split("|")
 	cc := 0
 	var conf *base.ProtocolConfig
 	var err error
+	var errnum = 0
 	for i := 0; i < c.ClientNum; i++ {
 		wait.Add(1)
 		time.Sleep(100 * time.Millisecond)
@@ -1178,6 +1231,9 @@ func (c *ClientControl) InitializationTunnels() {
 			defer wait.Done()
 
 			err, conf = c.RebuildSmux(no)
+			if err == ErrRouteISBreak {
+				errnum += 1
+			}
 			p := -1
 			pt := "unknow"
 			if err != nil {
@@ -1223,10 +1279,14 @@ func (c *ClientControl) InitializationTunnels() {
 	time.Sleep(1 * time.Second)
 	if conf != nil {
 		gs.Str("\nConnected %s :%d").F(conf.ProxyType, c.ClientNum).Color("g").Println(conf.ProxyType)
+		c.inited = true
+		use = true
 	}
-
-	c.inited = true
-
+	if errnum > c.confNum/2 {
+		c.SetRouteLoc("this is break, try next !!!")
+		use = false
+	}
+	return
 }
 
 func (c *ClientControl) Health() float32 {

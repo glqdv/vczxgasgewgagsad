@@ -166,6 +166,7 @@ class Controller:
     self.lcd=LCD1602(16,2)
     self.one = "Hello world"
     self.two = ".(* *). ?"
+    self.last_push = time.time()
 
   def loop(self):
     lcd = self.lcd
@@ -173,16 +174,10 @@ class Controller:
       l = time.time()
       while True:
       # set the cursor to column 0, line 1
-        lcd.setCursor(0, 0)
-      # print the number of seconds since reset:
-      # print the number of seconds since reset:
-        lcd.printout(self.one)
-        lcd.setCursor(0, 1)
-        lcd.printout(self.two)
         time.sleep(1)
-        if time.time() - l > 4 :
+        if time.time() - l > 2 :
           Exe.submit(self.get_state)
-          
+        
     except(KeyboardInterrupt):
       lcd.clear()
       del lcd
@@ -201,14 +196,19 @@ class Controller:
     else:
       if "\n" in msg:
         on,tw = msg.split("\n",1)
-        self.one = on[:16]
-        self.two = tw[:16]
+        self.one = on[:16] +"         "
+        self.two = tw[:16] + "        "
       else:
         if len(msg) > 16:
-          self.one = msg[:16]
-          self.two = msg[16:32]
+          self.one = msg[:16] + "        "
+          self.two = msg[16:32] + "        "
         else:
           self.one = msg
+      lcd = self.lcd
+      lcd.setCursor(0, 0)
+      lcd.printout(self.one)
+      lcd.setCursor(0, 1)
+      lcd.printout(self.two)
 
 
   def regist_btn(self, pin_num,callback):
@@ -218,6 +218,10 @@ class Controller:
       Used[pin_num] = True
 
   def switch(self, call_time):
+    if time.time() - self.last_push < 6:
+      self.show("wait : "+str( 2- time.time()+ self.last_push) + "s")
+      return
+    self.last_push = time.time()
     if call_time > 0.5:
       print("Long time --- to close")
       self.show("Switch To      \nChina/World               ")
@@ -247,13 +251,18 @@ class Controller:
       if res["msg"]["mode"] == "route":
         e = ">"
       if e == "X":
-        self.show(e+res["msg"]["running"]+"\n"+"China Net         ")
+        self.get_my_ip()+"\n"+"China Net         ")
       else:
         self.show(e+res["msg"]["running"]+"\n"+res["msg"]["loc"]+"   ")
     except Exception as e:
-      self.show("Please Login!\n.2.1:35555/z-login")
+      print(e)
+      self.show("Please Login!\n"+ time.ctime()[:16])
   
   def openClose(self,utime):
+    if time.time() - self.last_push < 2:
+      self.show("wait : "+str( 2- time.time()+ self.last_push) + "s")
+      return
+    self.last_push = time.time()
     print("Long time --- to close")
     self.show("Switch To      \nChina/World               ")
     try:
@@ -264,9 +273,19 @@ class Controller:
     except Exception as e:
       self.show(str(e), wait=4)
 
+  def get_my_ip(self):
+    t = requests.get("https://myip.ipip.net").text
+    if "IP" in t:
+      try:
+        return t.split()[1][3:]
+      except :
+        return "Unknow "
+    else:
+      return "Unknow "
+
 
 def kill_other_lcd():
-  this_id = os.getpid()
+  this_id = str(os.getpid())
   pids = os.popen("ps | grep lcd-btn.py | grep -v grep | awk '{print $1}' | xargs").read()
   if this_id in pids:
     pids = pids.remove(this_id)

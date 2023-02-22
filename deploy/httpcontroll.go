@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
 	"text/template"
@@ -20,7 +21,7 @@ import (
 
 type ClientInterface interface {
 	TryClose()
-	ChangeRoute(string)
+	ChangeRoute(string) bool
 	Socks5Listen(ini ...bool) error
 	HttpListen() error
 	DNSListen()
@@ -96,6 +97,17 @@ func localSetupHandler() http.Handler {
 			case <-inter.C:
 				if globalClient.Routes.Count() > 0 {
 					globalClient.Routes = TestRoutes(globalClient.Routes)
+					globalClient.Routes.Every(func(no int, i *Onevps) {
+						if globalClient.ClientConf != nil && i.Host == globalClient.ClientConf.GetRoute() {
+							loc := i.Location
+							loc += " " + gs.Str("%4dms").F(i.ConnectedQuality.Milliseconds()).Str()
+							if globalClient.ClientConf != nil {
+								globalClient.ClientConf.SetRouteLoc(loc)
+							}
+						}
+
+					})
+
 					if globalClient.ClientConf != nil {
 						globalClient.ClientConf.SetChangeRoute(func() string {
 							var it *Onevps
@@ -147,7 +159,26 @@ func localSetupHandler() http.Handler {
 			return
 		}
 	})
+	mux.HandleFunc("/log", func(w http.ResponseWriter, r *http.Request) {
+		name := r.Form.Get("name")
+		if name == "" {
+			fp, err := os.Open("/tmp/z.log")
+			if err != nil {
+				w.Write([]byte(err.Error()))
+			}
+			defer fp.Close()
+			io.Copy(w, fp)
+		} else {
+			fp, err := os.Open("/tmp/z-lcd.log")
+			if err != nil {
+				w.Write([]byte(err.Error()))
+			}
+			defer fp.Close()
+			io.Copy(w, fp)
+		}
+		return
 
+	})
 	mux.HandleFunc("/z-rule", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			w.Write(LoadPage("local.html", nil))
@@ -286,7 +317,12 @@ func localSetupHandler() http.Handler {
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
 						globalClient.ClientConf.TryClose()
-						go globalClient.ClientConf.ChangeRoute(last)
+						go func() {
+							if !globalClient.ClientConf.ChangeRoute(last) {
+								globalClient.ClientConf.SetRouteLoc("this is break, try next !!!")
+							}
+
+						}()
 					}
 				} else {
 
@@ -471,7 +507,7 @@ func localSetupHandler() http.Handler {
 						globalClient.Routes.Every(func(no int, i *Onevps) {
 							if i.Host == last {
 								loc = i.Location
-								loc += " " + gs.Str("%6s").F(i.ConnectedQuality.String()).Str()
+								loc += " " + gs.Str("%4dms").F(i.ConnectedQuality.Milliseconds()).Str()
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
@@ -485,7 +521,7 @@ func localSetupHandler() http.Handler {
 						globalClient.Routes.Every(func(no int, i *Onevps) {
 							if i.Host == last {
 								loc = i.Location
-								loc += " " + gs.Str("%6s").F(i.ConnectedQuality.String()).Str()
+								loc += " " + gs.Str("%4dms").F(i.ConnectedQuality.Milliseconds()).Str()
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
@@ -504,6 +540,8 @@ func localSetupHandler() http.Handler {
 					var oo *Onevps = nil
 					nowhost := globalClient.ClientConf.GetRoute()
 					nowix := -1
+					loc := "unknow"
+
 					globalClient.Routes.Every(func(no int, i *Onevps) {
 						if i.Host == nowhost {
 							nowix = no
@@ -513,11 +551,13 @@ func localSetupHandler() http.Handler {
 						} else {
 							if no == nowix+1 {
 								oo = i
+								loc = i.Location
+								loc += " " + gs.Str("%4dms").F(i.ConnectedQuality.Milliseconds()).Str()
 							}
 						}
 
 					})
-
+					globalClient.ClientConf.SetRouteLoc(loc)
 					go globalClient.ClientConf.ChangeRoute(oo.Host)
 					// last = host.(string)
 					gs.Dict[any]{

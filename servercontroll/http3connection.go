@@ -19,7 +19,7 @@ import (
 	"github.com/lucas-clemente/quic-go/http3"
 )
 
-func GetHTTP3Client(usetls bool) (client *http.Client) {
+func GetHTTP3Client(usetls bool, timeout ...int) (client *http.Client) {
 	var qconf quic.Config
 	cerPEM, err := asset.Asset(CERT)
 	if err != nil {
@@ -44,12 +44,16 @@ func GetHTTP3Client(usetls bool) (client *http.Client) {
 		ClientCAs:          certpool,
 		InsecureSkipVerify: true,
 	}
-
+	t := 8
+	if timeout != nil {
+		t = timeout[0]
+	}
 	if usetls {
+
 		tr := &http.Transport{TLSClientConfig: config}
 		client := &http.Client{
 			Transport: tr,
-			Timeout:   15 * time.Second,
+			Timeout:   time.Duration(t) * time.Second,
 		}
 		return client
 	}
@@ -61,14 +65,14 @@ func GetHTTP3Client(usetls bool) (client *http.Client) {
 	defer roundTripper.Close()
 	hclient := &http.Client{
 		Transport: roundTripper,
-		Timeout:   15 * time.Second,
+		Timeout:   time.Duration(t) * time.Second,
 	}
 
 	return hclient
 }
 
-func HTTP3(addr string, usetls bool, with func(addr string, client *http.Client) (resp *http.Response, err error)) (reply gs.Str, nerr error) {
-	cli := GetHTTP3Client(usetls)
+func HTTP3(addr string, usetls bool, with func(addr string, client *http.Client) (resp *http.Response, err error), timeout ...int) (reply gs.Str, nerr error) {
+	cli := GetHTTP3Client(usetls, timeout...)
 	if cli != nil {
 		if resp, err := with(addr, cli); err != nil {
 			reply = gs.Dict[any]{
@@ -120,12 +124,12 @@ func HTTP3Get(addr string) (reply gs.Str, nerr error) {
 	return
 }
 
-func HTTPSPost(addr string, data gs.Dict[any]) (reply gs.Str, nerr error) {
+func HTTPSPost(addr string, data gs.Dict[any], timeout ...int) (reply gs.Str, nerr error) {
 	reply, nerr = HTTP3(addr, true, func(addr string, client *http.Client) (resp *http.Response, err error) {
 		buffer := bytes.NewBufferString(data.Json().Str())
 		resp, err = client.Post(addr, "application/json", buffer)
 		return
-	})
+	}, timeout...)
 	return
 }
 
