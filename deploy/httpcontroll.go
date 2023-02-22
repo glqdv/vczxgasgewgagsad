@@ -388,7 +388,11 @@ func localSetupHandler() http.Handler {
 				} else {
 					router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
 					ST = true
-					Reply(w, ">"+globalClient.ClientConf.GetRoute(), true)
+					if globalClient.ClientConf != nil {
+						Reply(w, ">"+globalClient.ClientConf.GetRoute(), true)
+					} else {
+						Reply(w, "> no host ", true)
+					}
 
 					return
 				}
@@ -557,7 +561,19 @@ func localSetupHandler() http.Handler {
 						nowhost = globalClient.ClientConf.GetRoute()
 						// return
 					} else {
+
 						nowhost = string(globalClient.Routes[0].Host)
+						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT)
+						go globalClient.ClientConf.DNSListen()
+						go globalClient.ClientConf.Socks5Listen()
+						gs.Dict[any]{
+							"name":     user,
+							"password": pwd,
+							"last":     nowhost,
+							"proxy":    proxy,
+						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+						Reply(w, "!"+nowhost, true)
+						return
 					}
 					var oo *Onevps = nil
 					loc := "unknow"
@@ -577,8 +593,10 @@ func localSetupHandler() http.Handler {
 						}
 
 					})
-					globalClient.ClientConf.SetRouteLoc(loc)
-					go globalClient.ClientConf.ChangeRoute(oo.Host)
+					if globalClient.ClientConf != nil {
+						globalClient.ClientConf.SetRouteLoc(loc)
+						go globalClient.ClientConf.ChangeRoute(oo.Host)
+					}
 					// last = host.(string)
 					gs.Dict[any]{
 						"name":     user,
