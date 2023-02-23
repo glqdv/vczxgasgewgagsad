@@ -25,8 +25,10 @@ func setupHandler(www string) http.Handler {
 			if time.Now().Hour() == 0 {
 				gs.Str("Start Refresh All Routes").Println()
 				ids := gs.List[string]{}
-				Tunnels.Every(func(no int, i *base.ProxyTunnel) {
-					ids = append(ids, i.GetConfig().ID)
+				LockArea(func() {
+					Tunnels.Every(func(no int, i *base.ProxyTunnel) {
+						ids = append(ids, i.GetConfig().ID)
+					})
 				})
 
 				ids.Every(func(no int, i string) {
@@ -323,8 +325,10 @@ func setupHandler(www string) http.Handler {
 
 	mux.HandleFunc("/__close-all", func(w http.ResponseWriter, r *http.Request) {
 		ids := gs.List[string]{}
-		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
-			ids = append(ids, i.GetConfig().ID)
+		LockArea(func() {
+			Tunnels.Every(func(no int, i *base.ProxyTunnel) {
+				ids = append(ids, i.GetConfig().ID)
+			})
 		})
 
 		ids.Every(func(no int, i string) {

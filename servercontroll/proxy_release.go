@@ -20,27 +20,43 @@ var (
 	lastUse = 0
 )
 
+func LockArea(a func()) {
+	lock.Lock()
+	a()
+	lock.Unlock()
+	return
+
+}
+
 func GetProxy(proxyType ...string) *base.ProxyTunnel {
 	if proxyType == nil {
+		c := -1
+		LockArea(func() {
+			c = Tunnels.Count()
+		})
 
-		if Tunnels.Count() == 0 {
+		if c == 0 {
 			tunnel := NewProxy("quic")
 			AddProxy(tunnel)
 			return tunnel
 		} else {
-			lock.Lock()
-			otunnel := Tunnels.Nth(lastUse)
-			lastUse += 1
-			lastUse = lastUse % Tunnels.Count()
-			tunnel := Tunnels.Nth(lastUse)
-			lock.Unlock()
-			for i := 0; i < 4; i++ {
-				lock.Lock()
-				otunnel = Tunnels.Nth(lastUse)
+			LockArea(func() {
+				lastUse = lastUse % Tunnels.Count()
 				lastUse += 1
 				lastUse = lastUse % Tunnels.Count()
-				tunnel = Tunnels.Nth(lastUse)
-				lock.Unlock()
+			})
+			tunnel := Tunnels.Nth(lastUse)
+
+			for i := 0; i < 4; i++ {
+				var otunnel *base.ProxyTunnel
+				LockArea(func() {
+					otunnel = Tunnels.Nth(lastUse)
+					lastUse += 1
+					lastUse = lastUse % Tunnels.Count()
+					tunnel = Tunnels.Nth(lastUse)
+
+				})
+
 				if tunnel.GetConfig().ProxyType == otunnel.GetConfig().ProxyType {
 					continue
 				} else {
@@ -68,9 +84,10 @@ func GetProxy(proxyType ...string) *base.ProxyTunnel {
 }
 
 func AddProxy(c *base.ProxyTunnel) {
-	lock.Lock()
-	Tunnels = append(Tunnels, c)
-	lock.Unlock()
+	LockArea(func() {
+		Tunnels = append(Tunnels, c)
+	})
+
 }
 
 func DelProxy(name string) (found bool) {
@@ -84,9 +101,9 @@ func DelProxy(name string) (found bool) {
 			base.ClosePortUFW(tun.GetConfig().ServerPort)
 			if num, ok := ErrTypeCount[tun.GetConfig().ProxyType]; ok {
 				num += 1
-				lock.Lock()
-				ErrTypeCount[tun.GetConfig().ProxyType] = num
-				lock.Unlock()
+				LockArea(func() {
+					ErrTypeCount[tun.GetConfig().ProxyType] = num
+				})
 			}
 			tun.SetWaitToClose()
 			found = true
@@ -95,9 +112,10 @@ func DelProxy(name string) (found bool) {
 			e = e.Add(tun)
 		}
 	}
-	GLOCK.Lock()
-	Tunnels = e
-	GLOCK.Unlock()
+	LockArea(func() {
+		Tunnels = e
+	})
+
 	return
 }
 
