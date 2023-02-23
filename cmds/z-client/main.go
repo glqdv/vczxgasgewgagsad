@@ -30,6 +30,7 @@ func main() {
 	log := false
 	// useVPN := false
 	global := false
+	build := false
 	// cli := false
 	// configbuild := false
 
@@ -44,12 +45,17 @@ func main() {
 	flag.BoolVar(&noopenbrowser, "no-open", false, "true not open browser")
 	flag.BoolVar(&daemon, "d", false, "true to run deamon")
 	flag.BoolVar(&log, "log", false, "true to get log")
+	flag.BoolVar(&build, "install", false, "true to install")
 	flag.BoolVar(&global, "global", false, "true to set system proxy")
 
 	// flag.BoolVar(&cli, "cli", false, "true to use cli-client")
 	// flag.BoolVar(&configbuild, "", false, "true to use vultr api to build host group")
 
 	flag.Parse()
+	if build {
+		router.BuildInit()
+		os.Exit(0)
+	}
 
 	if dev {
 		deploy.DepBySSH(server)

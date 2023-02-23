@@ -16,6 +16,10 @@ import (
 	"gitee.com/dark.H/gs"
 )
 
+var (
+	LAST_USE_LOCAL_ADDR = ""
+)
+
 func redSocksStart(i int) {
 	// gs.Str()
 }
@@ -167,6 +171,7 @@ func kill(name string) {
 }
 
 func StartFireWall(proxyAddr string) {
+	LAST_USE_LOCAL_ADDR = proxyAddr
 	switch runtime.GOOS {
 	case "linux":
 		// ip := ""
@@ -183,21 +188,6 @@ func StartFireWall(proxyAddr string) {
 		if isv7 {
 			gs.Str("armv7 start routing ....").Println("firewall")
 			gs.Str(`
-#base {
-#    log_debug = on;
-#    log_info = on;
-#    redirector = iptables;
-#    daemon = on;
-#}
-#            
-#redsocks{
-#    local_ip = 0.0.0.0;
-#    local_port = 1081;
-#    ip = $${ip};
-#    port = $${port};
-#    type = socks5;
-#}
-
 base {
     log_debug = on;
     log_info = on;
@@ -464,4 +454,36 @@ func Exec(str gs.Str) gs.Str {
 
 func IsDNSRunning() bool {
 	return Exec("netstat -anup").In("60053")
+}
+
+func BuildInit() {
+	if IsRouter() {
+		gs.Str("Clear OLD ...").Color("g").Println("INSTALL")
+		gs.Str("/usr/sbin/lcd-btn.py").Rm()
+		gs.Str("/usr/sbin/redsocks2").Rm()
+		gs.Str("/etc/init.d/proxy-z").Rm()
+		gs.Str("/etc/rc.d/S96proxy-z").Rm()
+		gs.Str("/usr/local/bin/proxy-z").Rm()
+		ReleaseRedsocks()
+
+	}
+}
+
+func IsRedsocksRunning() bool {
+	return Exec("ps | grep redsocks| grep -v grep").In("/tmp/redsocks.conf")
+}
+
+func IsRouteRedirectOk() bool {
+	return Exec("iptables -t nat -L | grep 1081 | grep -v grep").In("REDIRECT")
+}
+
+func IsStartRouteMode() bool {
+	return Exec("iptables -t nat -L | grep REDSOCKS | grep -v grep").In("tcp")
+}
+
+func RestartRouterMode() {
+	if LAST_USE_LOCAL_ADDR != "" {
+		StopFirewall()
+		StartFireWall(LAST_USE_LOCAL_ADDR)
+	}
 }

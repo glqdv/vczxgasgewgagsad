@@ -98,12 +98,20 @@ func localSetupHandler() http.Handler {
 			case <-dnsCheck.C:
 				if globalClient.ClientConf != nil {
 					if !router.IsDNSRunning() {
-						gs.Str("DNS Service is Closed").Color("r").Println()
+						gs.Str("DNS Service is Closed").Color("r").Println("Check")
 						go globalClient.ClientConf.DNSListen()
 					} else {
-						gs.Str("DNS Service is RUNNING").Color("g").Println()
+						gs.Str("DNS Service is RUNNING").Color("g").Println("Check")
 					}
+				}
+				if router.IsStartRouteMode() {
+					if !router.IsRedsocksRunning() || !router.IsRouteRedirectOk() {
+						gs.Str("Route iptables/redsocks Closed").Color("r").Println("Check")
+						router.RestartRouterMode()
 
+					} else {
+						gs.Str("Route iptables/redsocks RUNNING").Color("r").Println("Check")
+					}
 				}
 			case <-inter.C:
 

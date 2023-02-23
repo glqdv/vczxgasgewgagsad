@@ -9,7 +9,6 @@ else
 fi
 echo "wait to set"
 sleep 1
-ssh $1 -t  'rm /usr/local/bin/proxy-z ; rm /usr/sbin/redsocks2 ; rm /etc/init.d/proxy-z ; rm /etc/rc.d/S96proxy-z'
-ssh $1 -t  ./z-client-arm -http
+ssh $1 -t  ./z-client-arm -install
 echo "restart "
 
