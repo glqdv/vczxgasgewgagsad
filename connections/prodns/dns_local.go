@@ -111,6 +111,13 @@ func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
 	return false
 }
 
+func SetConfigIP(ip string) {
+	domainsToAddresses["condfig.me"] = &DNSRecord{
+		Host: "condfig.me",
+		IPs:  gs.List[string]{ip},
+	}
+}
+
 func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool {
 	domain := msg.Question[0].Name
 	if gs.Str(domain).EndsWith(".lan.") {

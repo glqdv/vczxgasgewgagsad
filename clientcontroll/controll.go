@@ -28,6 +28,31 @@ var (
 	errInvalidWrite = errors.New("invalid write result")
 	ErrRouteISBreak = errors.New("route is break")
 	backupRoute     = make(chan *ClientControl)
+	cityMap         = gs.Dict[string]{
+		"Los Angeles":    "US",
+		"Seattle":        "US",
+		"Dallas":         "US",
+		"Tokyo":          "Japen",
+		"Chicago":        "US",
+		"Atlanta":        "US",
+		"London":         "UK",
+		"Singapore":      "Singa.",
+		"Silicon Valley": "US",
+		"Osaka":          "Japen",
+		"New Jersey":     "US",
+		"Miami":          "US",
+		"Toronto":        "Cana",
+		"Santiago":       "Chile",
+		"Stockholm":      "Swit",
+		"Honolulu":       "US",
+		"Paris":          "Fran",
+		"Warsaw":         "Polan",
+		"Mardri":         "Spain",
+		"Frankfurt":      "German",
+		"Amsterdam":      "Neth..",
+		"Seoul":          "Koral",
+		"Sydney":         "Austr",
+	}
 )
 
 func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
@@ -106,6 +131,7 @@ type ClientControl struct {
 	confNum        int
 	errCon         int
 	errorid        gs.Dict[int]
+	statusSignal   gs.Strs
 }
 
 func NewClientControll(addr string, listenport int) *ClientControl {
@@ -124,6 +150,7 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 	for i := 0; i < c.ClientNum; i++ {
 		c.SmuxClients = append(c.SmuxClients, nil)
 	}
+	c.statusSignal = gs.Str("*").Color("w", "B").Add("|").Repeat(c.ClientNum).Slice(0, -1).Split("|")
 	return c
 }
 
@@ -185,6 +212,9 @@ func (c *ClientControl) GetRoute() string {
 func (c *ClientControl) GetRouteLoc() string {
 	if !c.IsRunning {
 		return "Connecting ...."
+	}
+	if ee, ok := cityMap[c.Loc]; ok {
+		return ee
 	}
 	return c.Loc
 }
@@ -584,6 +614,7 @@ func (c *ClientControl) DNSListen() {
 
 		})
 		c.CloseDNS = dd.Shutdown
+		gs.Str("Wait Initialization finish .....").Color("g").Println()
 		for !c.inited {
 			time.Sleep(1 * time.Second)
 		}
@@ -595,6 +626,8 @@ func (c *ClientControl) DNSListen() {
 		if err != nil {
 			gs.Str("DNS (%s) | err : %s").F(gs.Str(":%d").F(port).Color("g"), err.Error()).Println("dns")
 		}
+	} else {
+		gs.Str("Can no start dns because dnservice not allow !").Color("r").Println()
 	}
 }
 
@@ -754,14 +787,17 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 }
 
 func (c *ClientControl) LogTest(raw []byte, host, l string) {
+	if len(l) > 5 {
+		l = l[:5]
+	}
 	if host == "" {
 		if raw[3] == 1 && len(raw) > 9 {
 			ip := net.IP(raw[4 : 4+net.IPv4len]).String()
 			host := prodns.SearchIP(ip)
 			if host != "" {
-				gs.Str(ip+string(gs.Str("(%s)").F(host).Color("y"))).Color("m", "U").Println("TEST-" + l)
+				gs.Str(gs.Str("%15s").F(ip)+gs.Str("(%s)").F(host).Color("y")).Color("m", "U").Println("tcp " + l)
 			} else {
-				gs.Str(ip+"(x)").Color("m", "U").Println("TEST-" + l)
+				gs.Str(gs.Str("%15s").F(ip)+"(x)").Color("m", "U").Println("tcp " + l)
 			}
 
 		}
@@ -1165,75 +1201,78 @@ func (c *ClientControl) CloseWriter() {
 	}
 }
 
+func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, status int) {
+
+	c.LockArea(func() {
+		msgs := c.statusSignal
+		switch status {
+		case 1:
+			msgs[channelID] = gs.Str('*').Color("r", "F", "B")
+		case 2:
+			switch ProxyType {
+			case "tls":
+				msgs[channelID] = gs.Str('*').Color("g", "B")
+			case "kcp":
+				msgs[channelID] = gs.Str('*').Color("b", "B")
+			case "quic":
+				msgs[channelID] = gs.Str('*').Color("c", "B")
+			default:
+				msgs[channelID] = gs.Str('*').Color("g", "B")
+			}
+
+		}
+		gs.Str("[%s] %s \r").F(c.Addr, msgs.Join("")).Print()
+		c.statusSignal = msgs
+	})
+
+}
+
+func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait *sync.WaitGroup) {
+
+	defer wait.Done()
+
+	c.ShowChannelStatus(channelID, "Unknow", 0)
+
+	err, conf := c.RebuildSmux(channelID)
+	if err == ErrRouteISBreak {
+		*errnum += 1
+	}
+
+	pt := "unknow"
+	if err != nil {
+		c.ShowChannelStatus(channelID, "Unknow", 1)
+		if err != nil {
+			base.ErrToFile("RebuildSmux Er", err)
+		}
+
+	} else {
+		if conf != nil {
+			pt = conf.ProxyType
+		}
+		c.ShowChannelStatus(channelID, pt, 2)
+
+	}
+
+}
+
 func (c *ClientControl) InitializationTunnels() (use bool) {
 	wait := sync.WaitGroup{}
-	l := sync.RWMutex{}
-	msgs := gs.Str("*").Color("y").Add("|").Repeat(c.ClientNum).Slice(0, -1).Split("|")
-	cc := 0
-	var conf *base.ProtocolConfig
-	var err error
 	var errnum = 0
 	for i := 0; i < c.ClientNum; i++ {
 		wait.Add(1)
-		time.Sleep(100 * time.Millisecond)
-		go func(no int, w *sync.WaitGroup) {
-			defer wait.Done()
-
-			err, conf = c.RebuildSmux(no)
-			if err == ErrRouteISBreak {
-				errnum += 1
-			}
-			p := -1
-			pt := "unknow"
-			if err != nil {
-				l.Lock()
-				msgs[no] = gs.Str('*').Color("r", "F")
-				l.Unlock()
-				if conf != nil {
-					p = conf.ServerPort
-					pt = conf.ProxyType
-				}
-				gs.Str("[%s T:%2d %s in %d] %s \r").F(c.Addr, cc, pt, p, msgs.Join("")).Print()
-				if err != nil {
-					base.ErrToFile("RebuildSmux Er", err)
-				}
-
-			} else {
-				l.Lock()
-				switch conf.ProxyType {
-				case "tls":
-					msgs[no] = gs.Str('*').Color("g", "B")
-				case "kcp":
-					msgs[no] = gs.Str('*').Color("b", "B")
-				case "quic":
-					msgs[no] = gs.Str('*').Color("m", "B")
-				default:
-					msgs[no] = gs.Str('*').Color("w", "B")
-				}
-
-				cc += 1
-				l.Unlock()
-				if conf != nil {
-					p = conf.ServerPort
-					pt = conf.ProxyType
-				}
-				gs.Str("[%s T:%2d %s in %d] %s \r").F(c.Addr, cc, pt, p, msgs.Join("")).Print()
-
-			}
-
-		}(i, &wait)
+		time.Sleep(50 * time.Millisecond)
+		go c.BuildChannel(i, &errnum, &wait)
 	}
 
 	wait.Wait()
 	time.Sleep(1 * time.Second)
-	if conf != nil {
-		gs.Str("\nConnected %s :%d").F(conf.ProxyType, c.ClientNum).Color("g").Println(conf.ProxyType)
-		c.inited = true
-		use = true
-	}
+	c.inited = true
+	use = true
 	if errnum > c.confNum/2 {
 		c.SetRouteLoc("this is break, try next !!!")
 		use = false
+	} else {
+		gs.Str("Tunnel Build Successful").Color("g", "F").Println()
 	}
 	return
 }

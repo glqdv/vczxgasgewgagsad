@@ -116,7 +116,7 @@ loop:
 		select {
 		case one := <-dnsReplyCache:
 			if one.Host == domain {
-				gs.Str(domain).Add(gs.Str(one.IPs[0]).Color("g")).Println("dns")
+				gs.Str("%15s").F(one.IPs[0]).Color("g").Add(domain).Println("dns reply")
 				return one
 			} else {
 				dnsReplyCache <- one
@@ -132,7 +132,7 @@ loop:
 	o := &DNSRecord{
 		Host: domain,
 	}
-	gs.Str(domain).Add(gs.Str(" timeout").Color("r")).Println("dns")
+	gs.Str(domain).Add(gs.Str(" timeout").Color("r")).Println("dns reply")
 	return o
 
 }

@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"gitee.com/dark.H/ProxyZ/asset"
+	"gitee.com/dark.H/ProxyZ/connections/prodns"
 	"gitee.com/dark.H/gn"
 	"gitee.com/dark.H/gs"
 )
@@ -61,6 +62,7 @@ func GetIface() (string, string) {
 
 func IPTahbleRouteSet(Pre string) string {
 	iface, gatewayip := GetIface()
+	prodns.SetConfigIP(gatewayip)
 	gs.Str("iface: %s | ip: %s").F(iface, gatewayip).Println("firewall")
 	if res := gn.AsReq(gs.Str("http://localhost:35555/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 		"op": "test",
