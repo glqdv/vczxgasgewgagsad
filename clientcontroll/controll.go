@@ -30,6 +30,7 @@ var (
 	backupRoute     = make(chan *ClientControl)
 	cityMap         = gs.Dict[string]{
 		"Los Angeles":    "US",
+		"Los-Angeles":    "US",
 		"Seattle":        "US",
 		"Dallas":         "US",
 		"Tokyo":          "Japen",
@@ -213,8 +214,12 @@ func (c *ClientControl) GetRouteLoc() string {
 	if !c.IsRunning {
 		return "Connecting ...."
 	}
-	if ee, ok := cityMap[c.Loc]; ok {
-		return ee
+	fs := gs.Str(c.Loc).SplitSpace()
+	e := fs[:fs.Len()-1].Join(" ")
+	last := fs[fs.Len()-1]
+	// gs.Str("'%s'").F(e).Println("Loc")
+	if ee, ok := cityMap[e.Str()]; ok {
+		return ee + " " + last.Str()
 	}
 	return c.Loc
 }

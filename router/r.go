@@ -183,35 +183,51 @@ func StartFireWall(proxyAddr string) {
 		if isv7 {
 			gs.Str("armv7 start routing ....").Println("firewall")
 			gs.Str(`
+#base {
+#    log_debug = on;
+#    log_info = on;
+#    redirector = iptables;
+#    daemon = on;
+#}
+#            
+#redsocks{
+#    local_ip = 0.0.0.0;
+#    local_port = 1081;
+#    ip = $${ip};
+#    port = $${port};
+#    type = socks5;
+#}
+
 base {
     log_debug = on;
     log_info = on;
     redirector = iptables;
     daemon = on;
 }
-            
+
 redsocks{
-    local_ip = 0.0.0.0;
-    local_port = 1081;
-    ip = $${ip};
-    port = $${port};
+    bind = "0.0.0.0:1081";
+    relay = "$${ip}:$${port}";
     type = socks5;
+    autoproxy = 0;
+    timeout = 12;
 }
+
 `).Format(gs.Dict[string]{
 				"ip":   gatewayip,
 				"port": port,
 			}).ToFile("/tmp/redsocks.conf", gs.O_NEW_WRITE)
 			gs.Str("gateway :" + gatewayip).Println("firewall")
-			if !gs.Str("/usr/sbin/redsocks").IsExists() {
-				if buf, err := asset.Asset("Resources/bin/redsocks"); err == nil {
-					if _, fp, err := gs.Str("/usr/sbin/redsocks").OpenFile(gs.O_NEW_WRITE); err == nil {
+			if !gs.Str("/usr/sbin/redsocks2").IsExists() {
+				if buf, err := asset.Asset("Resources/bin/redsocks2-armv7"); err == nil {
+					if _, fp, err := gs.Str("/usr/sbin/redsocks2").OpenFile(gs.O_NEW_WRITE); err == nil {
 						fp.Write(buf)
 						fp.Close()
-						os.Chmod("/usr/sbin/redsocks", os.FileMode(755))
+						os.Chmod("/usr/sbin/redsocks2", os.FileMode(755))
 					}
 				}
 			}
-			Exec(`redsocks -c /tmp/redsocks.conf`)
+			Exec(`redsocks2 -c /tmp/redsocks.conf`)
 		} else {
 			gs.Str(`
 base {
@@ -369,12 +385,12 @@ func ReleaseRedsocks() {
 		}
 		if isv7 {
 			gs.Str("release redsocks v7 ").Println()
-			if !gs.Str("/usr/sbin/redsocks").IsExists() {
-				if buf, err := asset.Asset("Resources/bin/redsocks"); err == nil {
-					if _, fp, err := gs.Str("/usr/sbin/redsocks").OpenFile(gs.O_NEW_WRITE); err == nil {
+			if !gs.Str("/usr/sbin/redsocks2").IsExists() {
+				if buf, err := asset.Asset("Resources/bin/redsocks2-armv7"); err == nil {
+					if _, fp, err := gs.Str("/usr/sbin/redsocks2").OpenFile(gs.O_NEW_WRITE); err == nil {
 						fp.Write(buf)
 						fp.Close()
-						os.Chmod("/usr/sbin/redsocks", os.FileMode(755))
+						os.Chmod("/usr/sbin/redsocks2", os.FileMode(755))
 					}
 					if buf, err := asset.Asset("Resources/bin/libevent_core-2.1.so.7"); err == nil {
 						if _, fp, err := gs.Str("/usr/lib/libevent_core-2.1.so.7").OpenFile(gs.O_NEW_WRITE); err == nil {
@@ -388,6 +404,7 @@ func ReleaseRedsocks() {
 					gs.Str("realse failed:" + err.Error()).Color("r").Println()
 				}
 			}
+
 		} else {
 			gs.Str("release redsocks ").Println()
 			if !gs.Str("/usr/sbin/redsocks2").IsExists() {
@@ -399,27 +416,27 @@ func ReleaseRedsocks() {
 					}
 				}
 			}
-		}
-
-		if !gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
-			_, fp, err := gs.Str("/usr/sbin/lcd-btn.py").OpenFile(gs.O_NEW_WRITE)
-			if err == nil {
-				if len(os.Args) > 0 {
-					if buf, err := asset.Asset("Resources/script/c.py"); err == nil {
-						fp.Write(buf)
+			if !gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
+				_, fp, err := gs.Str("/usr/sbin/lcd-btn.py").OpenFile(gs.O_NEW_WRITE)
+				if err == nil {
+					if len(os.Args) > 0 {
+						if buf, err := asset.Asset("Resources/script/c.py"); err == nil {
+							fp.Write(buf)
+						}
 					}
+					fp.Close()
+
 				}
-				fp.Close()
+			}
+			if gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
+				gs.Str("Start BTN Controller System!").Println()
+				if !Exec("ps ").In("/usr/sbin/lcd-btn.py") {
+					go Exec("/usr/bin/python /usr/sbin/lcd-btn.py >> /tmp/z-lcd.log")
+				}
 
 			}
 		}
-		if gs.Str("/usr/sbin/lcd-btn.py").IsExists() {
-			gs.Str("Start BTN Controller System!").Println()
-			if !Exec("ps ").In("/usr/sbin/lcd-btn.py") {
-				go Exec("/usr/bin/python /usr/sbin/lcd-btn.py >> /tmp/z-lcd.log")
-			}
 
-		}
 	}
 }
 

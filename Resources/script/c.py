@@ -164,8 +164,22 @@ def button(pin_num, callback):
 class Controller:
   def __init__(self):
     self.lcd=None
+    
     self.one = "Hello world"
     self.two = ".(* *). ?"
+    self.ssid = ""
+    self.key = ""
+    self._if_sure = False
+    try:
+      with open("/etc/config/wireless") as fp:
+        for l in fp:
+          if "ssid" in l:
+            self.ssid = "SSID:"+l.split("'")[1]
+          elif "key" in l:
+            self.key = "KEY :"+l.split("'")[1]
+            
+    except:
+      pass
     self.last_push = time.time()
 
   def loop(self):
@@ -246,6 +260,8 @@ class Controller:
       Used[pin_num] = True
 
   def switch(self, call_time):
+    if not self._if_sure:
+      self._if_sure = True
     if time.time() - self.last_push < 6:
       self.show("wait : "+str( 2- time.time()+ self.last_push) + "s")
       return
@@ -271,6 +287,10 @@ class Controller:
         self.show(str(e), wait=4)
 
   def get_state(self):
+    if not self._if_sure:
+      self.show(self.ssid +"\n"+self.key)
+      return
+
     try:
       res = requests.post("http://127.0.0.1:35555/z-api",json.dumps({
         "op":"check",
@@ -287,6 +307,8 @@ class Controller:
       self.show("System booting!\n"+ time.ctime()[4:20])
   
   def openClose(self,utime):
+    if not self._if_sure:
+      self._if_sure = True
     if time.time() - self.last_push < 2:
       self.show("wait : "+str( 2- time.time()+ self.last_push) + "s")
       return
