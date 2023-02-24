@@ -540,7 +540,7 @@ func localSetupHandler() http.Handler {
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
-						go globalClient.ClientConf.DNSListen()
+
 						go globalClient.ClientConf.Socks5Listen()
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")

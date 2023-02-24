@@ -78,6 +78,7 @@ type SmuxorQuicClient interface {
 	NewConnnect() (c net.Conn, err error)
 	Close() error
 	IsClosed() bool
+	GetProxyType() string
 }
 
 type ClientControl struct {
@@ -746,7 +747,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				// if c.regionFilter(socks5con, raw, host) {
 				// 	return
 				// }
-				c.LogTest(raw, host, "accept")
+
 				c.OnBodyBeforeGetRemote(socks5con, true, raw, host)
 
 			}(socks5con)
@@ -799,7 +800,8 @@ func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool,
 	var proxyType string
 	c.LogStat()
 	// for tryTime := 0; tryTime < 2; tryTime += 1 {
-	remotecon, err, eid, proxyType = c.ConnectRemote()
+	remotecon, eid, proxyType, err = c.ConnectRemote()
+	c.LogTest(raw, host, proxyType)
 	// c.LogTest(raw, host, "get con")
 	c.LogStat()
 	if err != nil {
@@ -1057,7 +1059,16 @@ func (c *ClientControl) ControllCode(host string) {
 
 func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfig) {
 	// gs.Str("b").Println("test1")
-	conf = c.GetAviableProxy()
+	switch no % 3 {
+	case 0:
+		conf = c.GetAviableProxy("quic")
+	case 1:
+		conf = c.GetAviableProxy("tls")
+	case 2:
+		conf = c.GetAviableProxy("kcp")
+	default:
+		conf = c.GetAviableProxy()
+	}
 
 	// gs.Str("g").Println("test2")
 	if conf == nil {
@@ -1087,12 +1098,12 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 	// gs.Str("--> "+conf.RemoteAddr()).Color("y", "B").Println(conf.ProxyType)
 	if singleTunnelConn != nil && conf.ProxyType != "quic" {
 		if len(c.SmuxClients) <= no {
-			c.SmuxClients = append(c.SmuxClients, prosmux.NewSmuxClient(singleTunnelConn))
+			c.SmuxClients = append(c.SmuxClients, prosmux.NewSmuxClient(singleTunnelConn, conf.ProxyType))
 		} else {
 			if c.SmuxClients[no] != nil {
 				c.SmuxClients[no].Close()
 			}
-			cc := prosmux.NewSmuxClient(singleTunnelConn)
+			cc := prosmux.NewSmuxClient(singleTunnelConn, conf.ProxyType)
 			c.lock.Lock()
 			c.SmuxClients[no] = nil
 			c.SmuxClients[no] = cc
@@ -1170,6 +1181,7 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 		con, err = e.NewConnnect()
 	} else {
 		if e != nil {
+			proxyType = e.GetProxyType()
 			con, err = e.NewConnnect()
 			return
 		} else {
@@ -1206,9 +1218,9 @@ func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, statu
 			case "tls":
 				msgs[channelID] = gs.Str('*').Color("g", "B")
 			case "kcp":
-				msgs[channelID] = gs.Str('*').Color("b", "B")
+				msgs[channelID] = gs.Str('*').Color("y", "B")
 			case "quic":
-				msgs[channelID] = gs.Str('*').Color("c", "B")
+				msgs[channelID] = gs.Str('*').Color("m", "B")
 			default:
 				msgs[channelID] = gs.Str('*').Color("g", "B")
 			}
@@ -1251,6 +1263,7 @@ func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait *sync.Wait
 func (c *ClientControl) InitializationTunnels() (use bool) {
 	wait := sync.WaitGroup{}
 	var errnum = 0
+
 	for i := 0; i < c.ClientNum; i++ {
 		wait.Add(1)
 		time.Sleep(50 * time.Millisecond)
@@ -1286,7 +1299,7 @@ func (c *ClientControl) LogErr(label string, err error, host, eid, proxyType str
 	gs.Str("%s %s").F(gs.Str("[%s] %s health:%.2f%% %s ").F(label, eid, health, proxyType).Color("w", "B"), gs.Str(err.Error()).Color("r")).Add("\n").Print()
 }
 
-func (c *ClientControl) ConnectRemote() (con net.Conn, err error, id, proxyType string) {
+func (c *ClientControl) ConnectRemote() (con net.Conn, id, proxyType string, err error) {
 
 	// connted := false
 

@@ -252,22 +252,15 @@ func (o *Onevps) Update() {
 
 func (o *Onevps) Test() time.Duration {
 	// var IDS gs.List[string]
-	s := sync.WaitGroup{}
 	// l := sync.RWMutex{}
-	var l time.Duration = 0
+	// var l time.Duration = 0
 	var ids gs.List[string]
-	for i := 0; i < 3; i++ {
-		s.Add(1)
-		go func(w *sync.WaitGroup) {
-			defer s.Done()
-			cq, id := servercontroll.TestServer(o.Host)
-			ids = id
-			l += cq
-		}(&s)
-	}
-	s.Wait()
-	o.ConnectedQuality = time.Duration(l / 3)
-
+	l, ids := servercontroll.TestServer(o.Host)
+	ol := l.Milliseconds()
+	ol += servercontroll.TestHost(o.Host)
+	ol /= 2
+	// s.Wait()
+	o.ConnectedQuality = time.Duration(ol)
 	o.IDS = ids.Count()
 	o.Speed = o.ConnectedQuality.String()
 	return o.ConnectedQuality

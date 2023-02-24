@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/clientcontroll"
@@ -31,6 +32,7 @@ func main() {
 	// useVPN := false
 	global := false
 	build := false
+	switch_route := false
 	// cli := false
 	// configbuild := false
 
@@ -47,7 +49,7 @@ func main() {
 	flag.BoolVar(&log, "log", false, "true to get log")
 	flag.BoolVar(&build, "install", false, "true to install")
 	flag.BoolVar(&global, "global", false, "true to set system proxy")
-
+	flag.BoolVar(&switch_route, "switch", false, "true to switch route")
 	// flag.BoolVar(&cli, "cli", false, "true to use cli-client")
 	// flag.BoolVar(&configbuild, "", false, "true to use vultr api to build host group")
 
@@ -129,6 +131,29 @@ func main() {
 	}
 	if log {
 		SeeLog(server)
+		os.Exit(0)
+	}
+
+	if switch_route {
+		routes := gs.List[any](gn.AsReq(gs.Str(server + "/z-api").AsRequest().SetMethod("POST").SetBody("{\"op\":\"test\"}")).Go().Body().Json()["msg"].([]any))
+		routes.Every(func(no int, i any) {
+			d := gs.Dict[any](i.(map[string]any))
+			gs.Str("%2d : %s  Speed: %s \n\t\t%s").F(no, gs.S(d["Host"]).Color("g"), gs.S(time.Duration(d["ConnectedQuality"].(int64)).String()).Color("y"), d["Location"]).Println()
+		})
+		gs.Str(" CHoose Route : ").Print()
+		l, _, err := bufio.NewReader(os.Stdin).ReadLine()
+		if err != nil {
+			gs.Str(err.Error()).Color("r").Println()
+			return
+		}
+		a, err := strconv.Atoi(string(l))
+		if err == nil {
+			route := gs.Dict[any](routes[a].(map[string]any))
+			gn.AsReq(gs.Str(server + "/z-api").AsRequest().SetMethod("POST").SetBody("{\"op\":\"switch\",\"host\":\"" + gs.Str(route["Host"].(string)) + "\"}")).Go().Body().Json().Every(func(k string, v any) {
+				gs.Str("%s : %v").F(k, v).Println()
+			})
+
+		}
 		os.Exit(0)
 	}
 

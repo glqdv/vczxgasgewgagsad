@@ -13,7 +13,7 @@ import (
 var RDNS = "8.8.8.8:53"
 
 type ConnecitonHandler interface {
-	ConnectRemote() (c net.Conn, err error, eid string, proxyType string)
+	ConnectRemote() (con net.Conn, id string, proxyType string, err error)
 	ErrRecord(eid string, i int)
 	Health() float32
 }

@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	dnsQueryCache = make(chan string, 100)
-	dnsReplyCache = make(chan *DNSRecord, 100)
+	dnsQueryCache = make(chan string, 300)
+	dnsReplyCache = make(chan *DNSRecord, 300)
 	dnslock       = sync.RWMutex{}
 )
 
@@ -31,6 +31,7 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 		server += ":55443"
 	}
 	server += "/z-dns"
+	gs.Str("query : %d / bastch").F(len(domains)).Color("g").Println("dns")
 	q := server.AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 		"hosts": gs.List[string](domains).Join(","),
 	}.Json())

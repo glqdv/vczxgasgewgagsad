@@ -37,6 +37,10 @@ func (qc *QuicClient) IsClosed() bool {
 	return qc.isclosed
 }
 
+func (qc *QuicClient) GetProxyType() string {
+	return "quic"
+}
+
 func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	if q.IsClosed() || q.qcon == nil {
 		return nil, errors.New("dia quic err")

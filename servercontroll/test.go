@@ -1,9 +1,19 @@
 package servercontroll
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"net"
+	"sync"
 	"time"
 
+	"gitee.com/dark.H/ProxyZ/connections/base"
+	"gitee.com/dark.H/ProxyZ/connections/prokcp"
+	"gitee.com/dark.H/ProxyZ/connections/proquic"
+	"gitee.com/dark.H/ProxyZ/connections/prosmux"
+	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
+	"gitee.com/dark.H/ProxyZ/connections/protls"
 	"gitee.com/dark.H/gs"
 )
 
@@ -89,4 +99,143 @@ func CanReachHOST(host string) bool {
 	}
 
 	return false
+}
+
+func GetProxyConfig(host, tp string) *base.ProtocolConfig {
+	data := gs.Dict[any]{
+		"type": tp,
+	}
+	H := gs.Str(host)
+	if !H.StartsWith("http") {
+		host = "https://" + host
+	}
+	if !H.In(":55443") {
+		host += ":55443"
+	}
+	server := gs.Str(host).Split("/")[1].Split(":")[0]
+	reply, err := HTTPSPost(host+"/proxy-get", data)
+	if err != nil {
+		gs.Str(err.Error()).Color("r").Println()
+		return nil
+	}
+	d := gs.Dict[any]{}
+	err = json.Unmarshal([]byte(reply), &d)
+	if err != nil {
+		gs.Str(err.Error()).Color("r").Println()
+		return nil
+	}
+	if c, ok := d["status"]; ok {
+		if c.(string) == "ok" {
+			di := d["msg"]
+			buf, err := json.Marshal(di)
+			if err != nil {
+				gs.Str(err.Error()).Color("r").Println()
+				return nil
+			}
+			conf := new(base.ProtocolConfig)
+			// gs.Str("read 2").Color("g").Println("test1.7")
+			if err := json.Unmarshal(buf, conf); err != nil {
+				gs.Str(err.Error()).Color("r").Println()
+				return nil
+			}
+			// gs.Str("read 3").Color("g").Println("test1.7")
+			if conf.Server == "0.0.0.0" {
+				conf.Server = server
+			}
+		}
+
+		return nil
+	} else {
+		return nil
+	}
+
+}
+
+func GetConn(conf *base.ProtocolConfig) (net.Conn, error) {
+	// gs.Str("a").Println("test3")
+	var singleTunnelConn net.Conn
+	var err error
+	switch conf.ProxyType {
+	case "tls":
+		singleTunnelConn, err = protls.ConnectTls(conf)
+	case "kcp":
+		singleTunnelConn, err = prokcp.ConnectKcp(conf)
+	case "quic":
+	default:
+		singleTunnelConn, err = prokcp.ConnectKcp(conf)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// gs.Str("--> "+conf.RemoteAddr()).Color("y", "B").Println(conf.ProxyType)
+	if singleTunnelConn != nil && conf.ProxyType != "quic" {
+		smux := prosmux.NewSmuxClient(singleTunnelConn, conf.ProxyType)
+		return smux.NewConnnect()
+	} else if conf.ProxyType == "quic" {
+		// gs.Str("test Enter be").Println(conf.ProxyType)
+		qc, err := proquic.NewQuicClient(conf)
+		if err != nil {
+			return nil, err
+		}
+		return qc.NewConnnect()
+
+	} else {
+		if err == nil {
+			err = errors.New("tls/kcp only :  now method is :" + conf.ProxyType)
+		}
+		return nil, err
+	}
+}
+
+func TestHost(host string) int64 {
+	wait := sync.WaitGroup{}
+	tim := gs.List[int64]{}
+	gs.List[string]{
+		"https://www.google.com",
+		"https://www.bing.com",
+		"https://twitter.com",
+	}.Every(func(no int, domain string) {
+		wait.Add(1)
+		go func(w *sync.WaitGroup) {
+			defer w.Done()
+			tp := "quic"
+			if no == 1 {
+				tp = "kcp"
+			} else if no == 2 {
+				tp = "tls"
+			}
+			config := GetProxyConfig(host, tp)
+			if config == nil {
+				tim = tim.Add((1 * time.Hour).Milliseconds())
+				return
+			}
+			st := time.Now()
+			con, err := GetConn(config)
+			if err != nil {
+				tim = tim.Add((1 * time.Hour).Milliseconds())
+				return
+			}
+			defer con.Close()
+
+			data := prosocks5.HostToRaw(domain, 443)
+			con.Write(data)
+			re := make([]byte, 200)
+			if n, err := con.Read(re); err == nil {
+				if bytes.Equal(re[:n], prosocks5.Socks5Confirm) {
+					tim = tim.Add(time.Now().Sub(st).Milliseconds())
+				}
+			} else {
+				tim = tim.Add((1 * time.Hour).Milliseconds())
+				return
+			}
+		}(&wait)
+	})
+	wait.Wait()
+	c := int64(0)
+	tim.Every(func(no int, i int64) {
+		c += i
+	})
+	c /= int64(tim.Count())
+	return c
 }

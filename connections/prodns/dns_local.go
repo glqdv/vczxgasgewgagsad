@@ -130,7 +130,7 @@ func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool
 		}
 	}
 	data := PackDNS(&msg)
-	conn, err, eid, _ := this.cons.ConnectRemote()
+	conn, eid, _, err := this.cons.ConnectRemote()
 	if err != nil {
 		this.cons.ErrRecord(eid, 1)
 		return false
