@@ -30,6 +30,7 @@ type ClientInterface interface {
 	GetRouteLoc() string
 	SetRouteLoc(loc string)
 	SetChangeRoute(f func() string)
+	IfRunning() bool
 	ChangeProxyType(tp string)
 	GetListenPort() (socks5port, httpport, dnsport int)
 }
@@ -516,6 +517,10 @@ func localSetupHandler() http.Handler {
 				return
 
 			case "switch":
+				if globalClient.ClientConf != nil && !globalClient.ClientConf.IfRunning() {
+					Reply(w, "wait ...", false)
+					return
+				}
 				if host, ok := d["host"]; ok && host != nil {
 					gs.Str(host.(string)).Color("g", "B").Println("Swtich")
 					if globalClient.ClientConf == nil {

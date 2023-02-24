@@ -63,6 +63,8 @@ func BackgroundBatchSend(server string, ifclose *bool) {
 	gs.Str("Start DNS Collection").Color("g", "B").Println("DNS")
 	defer func() {
 		gs.Str("CLOSE DNS Collection").Color("g", "B").Println("DNS")
+		dnsQueryCache = make(chan string, 100)
+		dnsReplyCache = make(chan *DNSRecord, 100)
 	}()
 	for {
 		if *ifclose {
@@ -70,7 +72,7 @@ func BackgroundBatchSend(server string, ifclose *bool) {
 		}
 		select {
 		case <-tick.C:
-			tick.Reset(100 * time.Millisecond)
+			// tick.Reset(100 * time.Millisecond)
 			if len(collected) > 0 {
 				go func(c ...string) {
 					if reply := SendDNS(gs.Str(server), c...); len(reply) > 0 {

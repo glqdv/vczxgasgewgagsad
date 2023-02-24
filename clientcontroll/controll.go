@@ -210,6 +210,10 @@ func (c *ClientControl) GetRoute() string {
 	return e.Str()
 }
 
+func (c *ClientControl) IfRunning() bool {
+	return c.IsRunning
+}
+
 func (c *ClientControl) GetRouteLoc() string {
 	if !c.IsRunning {
 		return "Connecting ...."
@@ -612,27 +616,32 @@ func (c *ClientControl) SetOutFile(out io.WriteCloser) {
 }
 
 func (c *ClientControl) DNSListen() {
-	if !c.dnsservice {
-		port := c.DnsServicePort
-		dd := StartDNS(port, c, func() {
-			c.dnsservice = true
+	for _i := 0; _i < 3; _i++ {
 
-		})
-		c.CloseDNS = dd.Shutdown
-		gs.Str("Wait Initialization finish .....").Color("g").Println()
-		for !c.inited {
-			time.Sleep(1 * time.Second)
+		if !c.dnsservice {
+			port := c.DnsServicePort
+			dd := StartDNS(port, c, func() {
+				c.dnsservice = true
+
+			})
+			c.CloseDNS = dd.Shutdown
+			gs.Str("Wait Initialization finish .....").Color("g").Println()
+			for !c.inited {
+				time.Sleep(1 * time.Second)
+			}
+
+			go prodns.BackgroundBatchSend(c.Addr.Str(), &c.closeFlag)
+			gs.Str("Start DNS (%s)").F(gs.Str(":%d").F(port).Color("g")).Println("dns")
+			err := dd.ListenAndServe()
+
+			if err != nil {
+				gs.Str("DNS (%s) | err : %s").F(gs.Str(":%d").F(port).Color("g"), err.Error()).Println("dns")
+			}
+			return
+		} else {
+			gs.Str("Can no start dns because dnservice not allow !").Color("r").Println("try again:" + gs.S(_i))
+			time.Sleep(2 * time.Second)
 		}
-
-		go prodns.BackgroundBatchSend(c.Addr.Str(), &c.closeFlag)
-		gs.Str("Start DNS (%s)").F(gs.Str(":%d").F(port).Color("g")).Println("dns")
-		err := dd.ListenAndServe()
-
-		if err != nil {
-			gs.Str("DNS (%s) | err : %s").F(gs.Str(":%d").F(port).Color("g"), err.Error()).Println("dns")
-		}
-	} else {
-		gs.Str("Can no start dns because dnservice not allow !").Color("r").Println()
 	}
 }
 
