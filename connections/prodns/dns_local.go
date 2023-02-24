@@ -18,6 +18,7 @@ var (
 	local2host         = make(gs.Dict[string])
 	fuzzyHost          = gs.List[string]{}
 	domainsToAddresses = make(map[string]*DNSRecord)
+	// DEBUG              = false
 )
 
 type DNSRecord struct {
@@ -212,7 +213,12 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 
 	if record.IPs.Count() > 0 {
 		this.lock.Lock()
-		domainsToAddresses[domain] = record
+		if record.Host == domain {
+			domainsToAddresses[domain] = record
+		} else {
+			gs.Str("Err position").Color("r").Println()
+		}
+
 		record.IPs.Every(func(no int, i string) {
 			if i == "0.0.0.0" {
 				return
@@ -243,17 +249,25 @@ func (this *DNSHandler) ResolveCache(w dns.ResponseWriter, msg dns.Msg) bool {
 	// gs.Str("query: %s").F(gs.Str(domain).Color("c", "U")).Println("dns")
 	if ok {
 		if time.Now().Before(addressR.timeout) {
-			addressR.IPs.Every(func(no int, ip string) {
-				if no == 0 {
-
-					gs.Str("(" + msg.Question[0].Name + ")").Color("y").Add(gs.Str(ip).Color("m")).Println("dns cache")
-
-				}
+			if addressR.IPs.Count() > 0 {
+				ips := addressR.IPs
+				i := gs.RAND.Int() % len(ips)
+				ip := ips[i]
 				msg.Answer = append(msg.Answer, &dns.A{
 					Hdr: dns.RR_Header{Name: domain, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 80},
 					A:   net.ParseIP(ip),
 				})
-			})
+				gs.Str("(" + msg.Question[0].Name + ")").Color("y").Add(gs.Str(ip).Color("m")).Println("dns cache")
+				ips.Every(func(no int, nip string) {
+					if nip != ip {
+						msg.Answer = append(msg.Answer, &dns.A{
+							Hdr: dns.RR_Header{Name: domain, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 80},
+							A:   net.ParseIP(nip),
+						})
+					}
+				})
+
+			}
 
 			w.WriteMsg(&msg)
 			return true

@@ -2,6 +2,7 @@ package prodns
 
 import (
 	"encoding/json"
+	"sync"
 	"time"
 
 	"gitee.com/dark.H/gn"
@@ -11,7 +12,14 @@ import (
 var (
 	dnsQueryCache = make(chan string, 100)
 	dnsReplyCache = make(chan *DNSRecord, 100)
+	dnslock       = sync.RWMutex{}
 )
+
+func dnslockarea(d func()) {
+	dnslock.Lock()
+	d()
+	dnslock.Unlock()
+}
 
 func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 	// ip2host = make(gs.Dict[string])
@@ -34,6 +42,7 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 	// tq.Println("end")
 	if res := tq.Go(); res.Err != nil {
 		gs.Str(res.Err.Error()).Color("r").Println("dns query err")
+		return nil
 	} else {
 		buf := res.Body()
 		d := gs.Dict[any]{}
@@ -57,14 +66,33 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 	return
 }
 
-func BackgroundBatchSend(server string, ifclose *bool) {
+func BackgroundBatchSend(server string, ifclose *bool, routeErrNum *int) {
 	tick := time.NewTicker(100 * time.Millisecond)
 	collected := gs.List[string]{}
 	gs.Str("Start DNS Collection").Color("g", "B").Println("DNS")
 	defer func() {
-		gs.Str("CLOSE DNS Collection").Color("g", "B").Println("DNS")
-		dnsQueryCache = make(chan string, 100)
-		dnsReplyCache = make(chan *DNSRecord, 100)
+		gs.Str("CLSING DNS Collection").Color("g", "B").Println("DNS")
+		// dnslockarea(func() {
+		if dnsQueryCache != nil {
+			for len(dnsQueryCache) > 0 {
+				<-dnsQueryCache
+			}
+			// close(dnsQueryCache)
+			gs.Str("close  DNS query").Color("g", "B").Println("DNS")
+		}
+		if dnsReplyCache != nil {
+			for len(dnsReplyCache) > 0 {
+				<-dnsQueryCache
+			}
+			// close(dnsReplyCache)
+			gs.Str("close  DNS reply").Color("g", "B").Println("DNS")
+		}
+		gs.Str("CLOSE DNS Collect ion").Color("g", "B").Println("DNS")
+		// dnsQueryCache = make(chan string, 100)
+		// dnsReplyCache = make(chan *DNSRecord, 100)
+
+		// })
+
 	}()
 	for {
 		if *ifclose {
@@ -75,7 +103,7 @@ func BackgroundBatchSend(server string, ifclose *bool) {
 			// tick.Reset(100 * time.Millisecond)
 			if len(collected) > 0 {
 				go func(c ...string) {
-					if reply := SendDNS(gs.Str(server), c...); len(reply) > 0 {
+					if reply := SendDNS(gs.Str(server), c...); reply != nil && len(reply) > 0 {
 						o := gs.Dict[*DNSRecord]{}
 						reply.Every(func(ip, dom string) {
 							if ip == "0.0.0.0" {
@@ -93,6 +121,11 @@ func BackgroundBatchSend(server string, ifclose *bool) {
 						o.Every(func(k string, v *DNSRecord) {
 							dnsReplyCache <- v
 						})
+						if *routeErrNum > 0 {
+							*routeErrNum -= 1
+						}
+					} else {
+						*routeErrNum += 1
 					}
 
 				}(collected...)
@@ -101,14 +134,18 @@ func BackgroundBatchSend(server string, ifclose *bool) {
 		case one := <-dnsQueryCache:
 			collected = collected.Add(one)
 		default:
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 		}
 	}
+	time.Sleep(2 * time.Second)
 
 }
 
 func Query(domain string) {
-	dnsQueryCache <- domain
+	if dnsQueryCache != nil {
+		dnsQueryCache <- domain
+	}
+
 }
 
 func Reply(domain string) *DNSRecord {
@@ -116,12 +153,18 @@ func Reply(domain string) *DNSRecord {
 loop:
 	for {
 		select {
-		case one := <-dnsReplyCache:
-			if one.Host == domain {
-				gs.Str("%15s").F(one.IPs[0]).Color("g").Add(domain).Println("dns reply")
-				return one
-			} else {
-				dnsReplyCache <- one
+		case one, ok := <-dnsReplyCache:
+			if ok {
+				// dnslockarea(func() {
+				if one.Host == domain {
+					gs.Str("%15s").F(one.IPs[0]).Color("g").Add(domain).Println(gs.Str("dns reply").Color("g"))
+					return one
+				} else {
+					if dnsReplyCache != nil {
+						dnsReplyCache <- one
+					}
+				}
+
 			}
 		default:
 			time.Sleep(50 * time.Millisecond)
@@ -134,7 +177,7 @@ loop:
 	o := &DNSRecord{
 		Host: domain,
 	}
-	gs.Str(domain).Add(gs.Str(" timeout").Color("r")).Println("dns reply")
+	gs.Str(domain).Add(gs.Str(" timeout").Color("r")).Println(gs.Str("dns reply").Color("g"))
 	return o
 
 }

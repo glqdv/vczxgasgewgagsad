@@ -625,7 +625,6 @@ func RunLocalRouterMode(repo, name, pwd string, l int) {
 	server := GetNewRoute()
 	cli := clientcontroll.NewClientControll(server, l)
 	cli.GetNewRoute = GetNewRoute
-	go cli.DNSListen()
 	cli.Socks5Listen()
 
 }

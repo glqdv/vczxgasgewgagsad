@@ -27,7 +27,6 @@ import (
 var (
 	errInvalidWrite = errors.New("invalid write result")
 	ErrRouteISBreak = errors.New("route is break")
-	backupRoute     = make(chan *ClientControl)
 	cityMap         = gs.Dict[string]{
 		"Los Angeles":    "US",
 		"Los-Angeles":    "US",
@@ -67,29 +66,11 @@ func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 	}
 
 	cli := NewClientControll(server, l)
-	if startDNS {
-		go cli.DNSListen()
-	}
 	if startHTTPProxy {
 		go cli.HttpListen()
 	}
 
 	cli.Socks5Listen()
-
-}
-
-func PrepareRoute(server string, l int) bool {
-	cli := NewClientControll(server, l)
-	if cli.InitializationTunnels() {
-		select {
-		case backupRoute <- cli:
-
-		default:
-
-		}
-		return true
-	}
-	return false
 
 }
 
@@ -120,7 +101,9 @@ type ClientControl struct {
 	closeFlag      bool
 	Usevpn         bool
 	dnsservice     bool
+	IfStartDNS     bool
 	inited         bool
+	IsBreak        bool
 	IsRunning      bool
 	vpnHandler     *vpn.VPNHandler
 	setTimer       *time.Timer
@@ -157,6 +140,12 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 
 func (c *ClientControl) Init() {
 	c.lastUse = -1
+	if c.proxyProfiles != nil {
+		for len(c.proxyProfiles) > 0 {
+			<-c.proxyProfiles
+		}
+		gs.Str("Clar Proxy Profiles ").Println("Init")
+	}
 	c.proxyProfiles = make(chan *base.ProtocolConfig, 10)
 	c.initProfiles = 0
 	c.errorid = make(gs.Dict[int])
@@ -164,7 +153,9 @@ func (c *ClientControl) Init() {
 	c.inited = false
 	c.dnsservice = false
 	c.IsRunning = false
+	c.IsBreak = false
 	c.RouteErrCount = 0
+	time.Sleep(1 * time.Second)
 }
 
 func RecvMsg(reply gs.Str) (di any, o bool) {
@@ -182,14 +173,21 @@ func RecvMsg(reply gs.Str) (di any, o bool) {
 	}
 }
 
+func (c *ClientControl) SetIfStartDNS(b bool) {
+	c.IfStartDNS = b
+}
+
 func (c *ClientControl) TryClose() {
 	c.closeFlag = true
+	c.SetRouteLoc("Closing...")
 	go func() {
 		if c, err := net.Dial("tcp", string(gs.Str("127.0.0.1:%d").F(c.ListenPort))); err == nil {
 			time.Sleep(100 * time.Millisecond)
 			c.Close()
 			gs.Str("Send Close Signal").Println("Close")
+
 		}
+		// c.SetRouteLoc("Closed")
 	}()
 }
 
@@ -233,9 +231,7 @@ func (c *ClientControl) SetRouteLoc(loc string) {
 }
 
 func (c *ClientControl) ChangeRoute(host string) bool {
-
 	if c.closeFlag {
-
 		c.Addr = gs.Str(Wrap(host))
 		gs.Str("Change Client Controll:" + c.Addr).Println()
 	} else {
@@ -258,21 +254,17 @@ func (c *ClientControl) ChangeRoute(host string) bool {
 		}
 	})
 
-	time.Sleep(1 * time.Second)
-
 	prodns.Clear()
-
 	if c.CloseDNS != nil {
 		c.CloseDNS()
 		gs.Str("Close DNS Service ").Color("g").Println()
+		time.Sleep(1 * time.Second)
 	}
 	c.Addr = gs.Str(host)
-	gs.Str("server closed !").Color("g").Println()
 	c.Init()
-
-	go c.DNSListen()
-	gs.Str("Start New route:" + c.Addr).Color("g").Println()
+	gs.Str("server init !").Color("g").Println()
 	if err := c.Socks5Listen(); err == ErrRouteISBreak {
+		gs.Str("Gs. is Break ").Println()
 		return false
 	} else {
 		return true
@@ -616,7 +608,7 @@ func (c *ClientControl) SetOutFile(out io.WriteCloser) {
 }
 
 func (c *ClientControl) DNSListen() {
-	for _i := 0; _i < 3; _i++ {
+	for _i := 0; _i < 10; _i++ {
 
 		if !c.dnsservice {
 			port := c.DnsServicePort
@@ -630,7 +622,7 @@ func (c *ClientControl) DNSListen() {
 				time.Sleep(1 * time.Second)
 			}
 
-			go prodns.BackgroundBatchSend(c.Addr.Str(), &c.closeFlag)
+			go prodns.BackgroundBatchSend(c.Addr.Str(), &c.closeFlag, &c.RouteErrCount)
 			gs.Str("Start DNS (%s)").F(gs.Str(":%d").F(port).Color("g")).Println("dns")
 			err := dd.ListenAndServe()
 
@@ -639,7 +631,8 @@ func (c *ClientControl) DNSListen() {
 			}
 			return
 		} else {
-			gs.Str("Can no start dns because dnservice not allow !").Color("r").Println("try again:" + gs.S(_i))
+
+			gs.Str("Can no start dns because dnservice not allow !").Color("r").Println("wait 2s try again:" + gs.S(_i))
 			time.Sleep(2 * time.Second)
 		}
 	}
@@ -658,16 +651,18 @@ CORE ！！！！！！！！
 */
 func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 
-	RE_LISTEN := false
 	if inied != nil && inied[0] {
 
 	} else {
 		if !c.InitializationTunnels() {
+			c.IsRunning = false
+			c.IsBreak = true
 			return ErrRouteISBreak
 		}
 	}
 
-	var bak *ClientControl
+	go c.DNSListen()
+
 	if c.ListenPort != 0 {
 		var l net.Listener
 
@@ -692,36 +687,12 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		gs.Str("Socks5 Start").Color("g", "B", "F").Println("service")
 	MLoop:
 		for {
-			if c.RouteErrCount > 20 {
-				if c.GetNewRoute != nil && !RE_LISTEN {
-					// ### BUG
-					l := c.GetNewRoute()
-					go func() {
-						for {
-							if !PrepareRoute(l, c.ListenPort) {
-								gs.Str("Wait 2 s try again!").Println()
-								time.Sleep(2 * time.Second)
-								l = c.GetNewRoute()
-							} else {
-								break
-							}
-
-						}
-					}()
-					RE_LISTEN = true
-					select {
-					case bak = <-backupRoute:
-						gs.Str("Use Backup Route").Color("g", "B", "U").Println()
-						break MLoop
-					}
-
-				} else {
-					gs.Str("no getNewRoute Function !!!!!").Color("r", "B").Println()
-				}
-			}
-			if c.ErrCount > 70 {
-				RE_LISTEN = true
-				break
+			if c.RouteErrCount > 15 {
+				c.ChangeNextRoute()
+				break MLoop
+			} else if c.ErrCount > 70 {
+				c.ChangeNextRoute()
+				break MLoop
 			}
 			if c.ErrCount > 7 {
 
@@ -783,19 +754,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		}
 	}
 	c.closed = true
-	if RE_LISTEN {
-
-		// c.ChangeNewRoute()
-		c.CloseDNS()
-		if bak != nil {
-			c.SetRouteLoc(bak.GetRouteLoc())
-			go bak.DNSListen()
-			bak.Socks5Listen()
-		}
-		// c.closed = false
-		// go c.DNSListen()
-		// c.Socks5Listen()
-	}
+	c.CloseDNS()
 
 	return
 }
@@ -1000,6 +959,21 @@ func (c *ClientControl) LogStat() {
 	gs.S("%s %d/%d/%d\r").F(gs.Str("[status]").Color("B"), c.AliveCount, c.ErrCount, c.acceptCount).Print()
 }
 
+func (c *ClientControl) ChangeNextRoute() {
+	if c.GetNewRoute != nil {
+
+		l := c.GetNewRoute()
+		go func() {
+			gs.Str("Wait 1s then Change Route: " + l).Color("r").Println("Change")
+			time.Sleep(1 * time.Second)
+			c.ChangeRoute(l)
+		}()
+
+	} else {
+		gs.Str("no getNewRoute Function !!!!!").Color("r", "B").Println()
+	}
+}
+
 func (c *ClientControl) ChangeNewRoute() {
 	if c.GetNewRoute != nil {
 		gs.Str("Get New Route .... ").Println("Switch Route")
@@ -1030,7 +1004,12 @@ func (c *ClientControl) ChangeNewRoute() {
 			})
 			gs.Str("Clear  ok " + c.Addr).Println("Switch Route")
 			if c.CloseDNS != nil {
-				c.CloseDNS()
+				if err := c.CloseDNS(); err != nil {
+					gs.Str(err.Error()).Color("r").Println("Close DNS")
+
+					c.CloseDNS()
+				}
+				// c.CloseDNS()
 				gs.Str("Close DNS service").Println("Switch Route")
 			}
 			c.RouteErrCount = 0
@@ -1329,14 +1308,10 @@ func Pipe(p1, p2 net.Conn) {
 	// var wait int = 1800
 	wg.Add(1)
 	streamCopy := func(dst net.Conn, src net.Conn, fr, to net.Addr) {
-		// startAt := time.Now()
-		// Copy(dst, src, wait)
-		buf := make([]byte, 8092)
-		// io.CopyBuffer(dst, src, buf)
+		buf := make([]byte, 4096)
 		copyBuffer(dst, src, buf, 1800)
 		p1.Close()
 		p2.Close()
-		// }()
 	}
 
 	go func(p1, p2 net.Conn) {

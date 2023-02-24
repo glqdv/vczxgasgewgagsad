@@ -111,7 +111,7 @@ func localSetupHandler() http.Handler {
 						router.RestartRouterMode()
 
 					} else {
-						gs.Str("Route iptables/redsocks RUNNING").Color("r").Println("Check")
+						gs.Str("Route iptables/redsocks RUNNING").Color("g").Println("Check")
 					}
 				}
 			case <-inter.C:
@@ -333,7 +333,6 @@ func localSetupHandler() http.Handler {
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
 						go globalClient.ClientConf.Socks5Listen()
-						go globalClient.ClientConf.DNSListen()
 
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
@@ -577,7 +576,7 @@ func localSetupHandler() http.Handler {
 
 						nowhost = string(globalClient.Routes[0].Host)
 						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT)
-						go globalClient.ClientConf.DNSListen()
+
 						go globalClient.ClientConf.Socks5Listen()
 						gs.Dict[any]{
 							"name":     user,
