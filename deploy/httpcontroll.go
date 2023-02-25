@@ -99,10 +99,12 @@ func localSetupHandler() http.Handler {
 			case <-dnsCheck.C:
 				if globalClient.ClientConf != nil {
 					if !router.IsDNSRunning() {
-						gs.Str("DNS Service is Closed").Color("r").Println("Check")
-						go globalClient.ClientConf.DNSListen()
+						if router.IsRouter() {
+							gs.Str("DNS Service is Closed").Color("r").Println("Check")
+							go globalClient.ClientConf.DNSListen()
+						}
 					} else {
-						gs.Str("DNS Service is RUNNING").Color("g").Println("Check")
+						// gs.Str("DNS Service is RUNNING").Color("g").Println("Check")
 					}
 				}
 				if router.IsStartRouteMode() {
@@ -111,7 +113,7 @@ func localSetupHandler() http.Handler {
 						router.RestartRouterMode()
 
 					} else {
-						gs.Str("Route iptables/redsocks RUNNING").Color("g").Println("Check")
+						// gs.Str("Route iptables/redsocks RUNNING").Color("g").Println("Check")
 					}
 				}
 			case <-inter.C:
@@ -352,6 +354,7 @@ func localSetupHandler() http.Handler {
 				return
 			} else {
 				gs.Str("update route failed").Println("init")
+				// INFO := ""
 				w.WriteHeader(400)
 				Reply(w, "", false)
 			}
@@ -639,8 +642,9 @@ func localSetupHandler() http.Handler {
 					}
 				} else {
 					Reply(w, gs.Dict[any]{
-						// "global":  IsOpenGlobalState(),
-						"running": "China-net",
+						"mode":    "",
+						"loc":     "China-no-login",
+						"running": "login first!",
 					}, true)
 				}
 				return
@@ -660,8 +664,11 @@ func localSetupHandler() http.Handler {
 
 func LocalAPI(openbrowser, global bool) {
 	server := &http.Server{
-		Handler: localSetupHandler(),
-		Addr:    "0.0.0.0:35555",
+		Handler:      localSetupHandler(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Addr:         "0.0.0.0:35555",
 	}
 	if !openbrowser {
 		go func() {

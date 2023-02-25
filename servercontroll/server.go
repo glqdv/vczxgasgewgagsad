@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"gitee.com/dark.H/ProxyZ/asset"
 	"gitee.com/dark.H/ProxyZ/connections/base"
@@ -101,9 +102,12 @@ func HTTP3Server(serverAddr, wwwDir string, useQuic bool) {
 
 	} else {
 		server := &http.Server{
-			Handler:   handler,
-			Addr:      serverAddr,
-			TLSConfig: tlsconfig,
+			Handler:      handler,
+			ReadTimeout:  7 * time.Second,
+			WriteTimeout: 12 * time.Second,
+			IdleTimeout:  120 * time.Second,
+			Addr:         serverAddr,
+			TLSConfig:    tlsconfig,
 		}
 		gs.Str(server.Addr).Println("TLS HTTP")
 		ln, err := tls.Listen("tcp", serverAddr, tlsconfig)

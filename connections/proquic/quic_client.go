@@ -15,6 +15,7 @@ type QuicClient struct {
 	isclosed  bool
 	tlsconfig *tls.Config
 	qcon      quic.Connection
+	eid       string
 }
 
 func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
@@ -30,6 +31,7 @@ func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
 		return qc, err
 	}
 	qc.qcon = conn
+	qc.eid = config.ID
 	return
 }
 
@@ -41,6 +43,10 @@ func (qc *QuicClient) GetProxyType() string {
 	return "quic"
 }
 
+func (qc *QuicClient) ID() string {
+	return qc.eid
+}
+
 func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	if q.IsClosed() || q.qcon == nil {
 		return nil, errors.New("dia quic err")
@@ -50,7 +56,8 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	// gs.Str("open stream !!").Println()
 	// cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	// conn.
-	stream, err = conn.OpenStreamSync(context.Background())
+	// stream, err = conn.OpenStreamSync(context.Background())
+	stream, err = conn.OpenStream()
 
 	if err != nil {
 

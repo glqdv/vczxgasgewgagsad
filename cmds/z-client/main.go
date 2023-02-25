@@ -138,7 +138,7 @@ func main() {
 		routes := gs.List[any](gn.AsReq(gs.Str(server + "/z-api").AsRequest().SetMethod("POST").SetBody("{\"op\":\"test\"}")).Go().Body().Json()["msg"].([]any))
 		routes.Every(func(no int, i any) {
 			d := gs.Dict[any](i.(map[string]any))
-			gs.Str("%2d : %s  Speed: %s \n\t\t%s").F(no, gs.S(d["Host"]).Color("g"), gs.S(time.Duration(d["ConnectedQuality"].(int64)).String()).Color("y"), d["Location"]).Println()
+			gs.Str("%2d : %s  Speed: %s \n\t\t%s").F(no, gs.S(d["Host"]).Color("g"), gs.S(time.Duration(int64(d["ConnectedQuality"].(float64))).String()).Color("y"), d["Location"]).Println()
 		})
 		gs.Str(" CHoose Route : ").Print()
 		l, _, err := bufio.NewReader(os.Stdin).ReadLine()

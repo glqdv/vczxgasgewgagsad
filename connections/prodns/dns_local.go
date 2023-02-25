@@ -8,12 +8,12 @@ import (
 
 	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
 	"gitee.com/dark.H/ProxyZ/geo"
+
 	"gitee.com/dark.H/gs"
 	"github.com/miekg/dns"
 )
 
 var (
-	isRouter           = (runtime.GOOS == "linux" && runtime.GOARCH == "arm")
 	ip2host            = make(gs.Dict[string])
 	local2host         = make(gs.Dict[string])
 	fuzzyHost          = gs.List[string]{}
@@ -31,8 +31,8 @@ type DNSHandler struct {
 	RemoteDNS string
 	cons      ConnecitonHandler
 	IsServer  bool
-
-	lock sync.RWMutex
+	queryWait int
+	lock      sync.RWMutex
 }
 
 func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
@@ -50,16 +50,25 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		if this.ResolveCache(w, msg) {
 			return
 		}
-		gs.Str(domain).Println("dns query")
-		if isRouter {
+		this.lock.Lock()
+		this.queryWait += 1
+		this.lock.Unlock()
+		if this.IsRouter() {
 
 			if IsLocal(domain) {
+				gs.Str(domain).Println("dns cn")
 				if this.ResolveLocal(w, msg) {
+					this.lock.Lock()
+					this.queryWait -= 1
+					this.lock.Unlock()
 					return
 				}
 			}
 
-			if this.ResolveRemote(w, msg) {
+			if this.ResolveRemoteOld(w, msg) {
+				this.lock.Lock()
+				this.queryWait -= 1
+				this.lock.Unlock()
 				return
 			}
 
@@ -69,11 +78,18 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		if this.ResolveRemote(w, msg) {
+			this.lock.Lock()
+			this.queryWait -= 1
+			this.lock.Unlock()
 			return
 		}
 
 	}
 	w.WriteMsg(&msg)
+}
+
+func (this *DNSHandler) IsRouter() bool {
+	return runtime.GOOS == "linux" && (runtime.GOARCH == "arm" || runtime.GOARCH == "arm64")
 }
 
 func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
@@ -130,32 +146,35 @@ func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool
 		}
 	}
 	data := PackDNS(&msg)
+	gs.Str("before con").Color("y").Println(domain)
 	conn, eid, _, err := this.cons.ConnectRemote()
 	if err != nil {
+		gs.Str("no conn to dns :" + eid).Color("r").Println("Dns get con errr")
 		this.cons.ErrRecord(eid, 1)
 		return false
 	}
-	if err != nil {
-		this.cons.ErrRecord(eid, 1)
-		return false
-	}
+
 	defer conn.Close()
 	// data.Println()
+
 	r := prosocks5.HostToRaw(data.Str(), 99)
 	conn.Write(r)
 	replyB := make([]byte, 4096)
-	conn.SetReadDeadline(time.Now().Add(6 * time.Second))
-	gs.Str(domain).Color("y").Println(gs.Str("query remote").Color("b"))
+	gs.Str("before read").Color("y", "U").Println(domain)
+	conn.SetReadDeadline(time.Now().Add(12 * time.Second))
+	// gs.Str(domain).Color("y").Println(gs.Str("query remote").Color("b"))
 	if n, err := conn.Read(replyB); err != nil {
 		if len(msg.Question) > 0 {
 			qn := msg.Question[0].Name
-			gs.Str("health:%.2f%% [%s/%s] dns read err:"+err.Error()).F(this.cons.Health(), qn, eid).Color("r", "B").Println("dns")
-			this.cons.ErrRecord(eid, 2)
+			// gs.Str("health:%.2f%% [%s/%s] dns read err:"+err.Error()).F(this.cons.Health(), qn, eid).Color("r", "B").Println("dns")
+			gs.Str(qn).Color("r").Println("query")
+			this.cons.ErrRecord(eid, 1)
 
 		}
 
 		return false
 	} else {
+		gs.Str("before parse").Color("m").Println(domain)
 		if replymsg, err := UnpackDNS(gs.Str(string(replyB[:n]))); err != nil {
 			gs.Str("dns unpack err:"+err.Error()).Color("r", "B").Println("dns")
 			return false
@@ -164,6 +183,7 @@ func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool
 			if len(replymsg.Answer) > 0 {
 				record := &DNSRecord{
 					timeout: time.Now().Add(5 * time.Minute),
+					Host:    domain,
 				}
 				for _, o := range replymsg.Answer {
 					if o.Header().Rrtype == dns.TypeA && o.Header().Class == dns.ClassINET {
@@ -173,20 +193,24 @@ func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool
 						}
 					}
 				}
+				gs.Str("before cache").Color("m", "U").Println(domain)
+				this.lock.Lock()
 				if record.IPs.Count() > 0 {
-					this.lock.Lock()
 					domainsToAddresses[domain] = record
 					record.IPs.Every(func(no int, i string) {
 						ip2host[i] = domain
 					})
-					this.lock.Unlock()
 				}
+				this.lock.Unlock()
 			}
 			if len(replymsg.Question) > 0 {
-
 				gs.Str("(" + msg.Question[0].Name + ")").Color("y").Add(gs.Str(ip).Color("m")).Println("dns remote")
 			}
+			gs.Str("before write").Color("g").Println(domain)
 			w.WriteMsg(replymsg)
+			gs.Str("before vanish").Color("g", "U").Println(domain)
+			this.cons.ErrVanish(eid)
+			gs.Str("before vanish").Color("g", "B").Println(domain)
 			return true
 		}
 
@@ -207,8 +231,21 @@ func (this *DNSHandler) ResolveRemote(w dns.ResponseWriter, msg dns.Msg) bool {
 		}
 	}
 	domain = msg.Question[0].Name
-	Query(domain)
-	record := Reply(domain)
+	record := &DNSRecord{
+		// Host: domain,
+	}
+	if reply := SendDNS(gs.Str(DNSServerAddr), domain); reply != nil && len(reply) > 0 {
+
+		reply.Every(func(ip, dom string) {
+			// gs.Str(ip + " - " + dom).Println()
+			if ip == "0.0.0.0" {
+				return
+			}
+			record.Host = dom
+			record.IPs = record.IPs.Add(ip)
+		})
+	}
+
 	record.timeout = time.Now().Add(5 * time.Minute)
 
 	if record.IPs.Count() > 0 {

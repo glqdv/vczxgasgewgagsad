@@ -170,7 +170,7 @@ func GetConn(conf *base.ProtocolConfig) (net.Conn, error) {
 
 	// gs.Str("--> "+conf.RemoteAddr()).Color("y", "B").Println(conf.ProxyType)
 	if singleTunnelConn != nil && conf.ProxyType != "quic" {
-		smux := prosmux.NewSmuxClient(singleTunnelConn, conf.ProxyType)
+		smux := prosmux.NewSmuxClient(singleTunnelConn, conf.ID, conf.ProxyType)
 		return smux.NewConnnect()
 	} else if conf.ProxyType == "quic" {
 		// gs.Str("test Enter be").Println(conf.ProxyType)
@@ -188,9 +188,9 @@ func GetConn(conf *base.ProtocolConfig) (net.Conn, error) {
 	}
 }
 
-func TestHost(host string) int64 {
+func TestHost(host string) time.Duration {
 	wait := sync.WaitGroup{}
-	tim := gs.List[int64]{}
+	tim := gs.List[time.Duration]{}
 	gs.List[string]{
 		"https://www.google.com",
 		"https://www.bing.com",
@@ -207,13 +207,13 @@ func TestHost(host string) int64 {
 			}
 			config := GetProxyConfig(host, tp)
 			if config == nil {
-				tim = tim.Add((1 * time.Hour).Milliseconds())
+				tim = tim.Add((30 * time.Minute))
 				return
 			}
 			st := time.Now()
 			con, err := GetConn(config)
 			if err != nil {
-				tim = tim.Add((1 * time.Hour).Milliseconds())
+				tim = tim.Add((30 * time.Minute))
 				return
 			}
 			defer con.Close()
@@ -223,19 +223,19 @@ func TestHost(host string) int64 {
 			re := make([]byte, 200)
 			if n, err := con.Read(re); err == nil {
 				if bytes.Equal(re[:n], prosocks5.Socks5Confirm) {
-					tim = tim.Add(time.Now().Sub(st).Milliseconds())
+					tim = tim.Add(time.Now().Sub(st))
 				}
 			} else {
-				tim = tim.Add((1 * time.Hour).Milliseconds())
+				tim = tim.Add((1 * time.Hour))
 				return
 			}
 		}(&wait)
 	})
 	wait.Wait()
-	c := int64(0)
-	tim.Every(func(no int, i int64) {
+	c := time.Duration(0)
+	tim.Every(func(no int, i time.Duration) {
 		c += i
 	})
-	c /= int64(tim.Count())
+	c /= time.Duration((tim.Count()))
 	return c
 }

@@ -427,6 +427,20 @@ func ReleaseRedsocks() {
 			}
 		}
 
+		if IsRouter() {
+			if !gs.Str("/usr/sbin/auto-z-proxy").IsExists() {
+				_, fp, err := gs.Str("/usr/sbin/auto-z-proxy").OpenFile(gs.O_NEW_WRITE)
+				if err == nil {
+					if len(os.Args) > 0 {
+						if buf, err := asset.Asset("Resources/bin/auto-z-proxy"); err == nil {
+							fp.Write(buf)
+						}
+					}
+					fp.Close()
+				}
+			}
+		}
+
 	}
 }
 
@@ -464,6 +478,7 @@ func BuildInit() {
 		gs.Str("/etc/init.d/proxy-z").Rm()
 		gs.Str("/etc/rc.d/S96proxy-z").Rm()
 		gs.Str("/usr/local/bin/proxy-z").Rm()
+		gs.Str("/usr/sbin/auto-proxy-z").Rm()
 		ReleaseRedsocks()
 
 	}

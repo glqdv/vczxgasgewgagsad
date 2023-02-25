@@ -82,7 +82,7 @@ func HTTP3(addr string, usetls bool, with func(addr string, client *http.Client)
 			nerr = err
 			return
 		} else {
-
+			defer resp.Body.Close()
 			buf, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				reply = gs.Dict[any]{

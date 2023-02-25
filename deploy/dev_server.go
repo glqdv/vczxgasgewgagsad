@@ -256,7 +256,7 @@ func (o *Onevps) Test() time.Duration {
 	// var l time.Duration = 0
 	var ids gs.List[string]
 	l, ids := servercontroll.TestServer(o.Host)
-	ol := l.Milliseconds()
+	ol := l
 	ol += servercontroll.TestHost(o.Host)
 	ol /= 2
 	// s.Wait()

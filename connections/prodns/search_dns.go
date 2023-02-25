@@ -38,8 +38,11 @@ func IsLocal(ip string) (ok bool) {
 	_, ok = local2host[ip]
 	if !ok {
 		fuzzyHost.Every(func(no int, i string) {
-			ok = gs.Str(ip).In(gs.Str(i).Replace("*", ""))
-
+			if gs.Str(i).In("*") {
+				if gs.Str(ip).In(gs.Str(i).Replace("*", "")) {
+					ok = true
+				}
+			}
 		})
 	}
 	return

@@ -57,6 +57,7 @@ type SmuxConfig struct {
 	Session         *smux.Session
 	ZeroToDel       *bool
 	ProxyType       string
+	eid             string
 	handleStream    func(conn net.Conn) (err error)
 }
 
@@ -93,7 +94,7 @@ func NewSmuxServerNull() (s *SmuxConfig) {
 	return
 }
 
-func NewSmuxClient(conn net.Conn, proxyType string) (s *SmuxConfig) {
+func NewSmuxClient(conn net.Conn, eid, proxyType string) (s *SmuxConfig) {
 	s = new(SmuxConfig)
 	// Create a multiplexer using smux
 	// conf := s.GenerateConfig()
@@ -114,6 +115,11 @@ func NewSmuxClient(conn net.Conn, proxyType string) (s *SmuxConfig) {
 	s.Session = mux
 	return
 }
+
+func (s *SmuxConfig) ID() string {
+	return s.eid
+}
+
 func (s *SmuxConfig) IsClosed() bool {
 	if s.Session == nil {
 		return false

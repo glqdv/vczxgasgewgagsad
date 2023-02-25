@@ -15,6 +15,7 @@ var RDNS = "8.8.8.8:53"
 type ConnecitonHandler interface {
 	ConnectRemote() (con net.Conn, id string, proxyType string, err error)
 	ErrRecord(eid string, i int)
+	ErrVanish(eid string)
 	Health() float32
 }
 
