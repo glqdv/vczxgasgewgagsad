@@ -113,14 +113,19 @@ func localSetupHandler() http.Handler {
 					}
 				}
 				if router.IsStartRouteMode() {
-					if !router.IsRedsocksRunning() || !router.IsRouteRedirectOk() {
+					if !router.IsRedsocksRunning() {
 						gs.Str("Route iptables/redsocks Closed").Color("r").Println("Check")
 						router.RestartRouterMode()
 
 					} else {
 						// gs.Str("Route iptables/redsocks RUNNING").Color("g").Println("Check")
 					}
+					if !router.IsRouteRedirectOk() {
+						gs.Str("Route iptables/redsocks Closed").Color("r").Println("Check")
+						router.RestartRouterMode()
+					}
 				}
+
 			case <-inter.C:
 
 				if globalClient.Routes.Count() > 0 {

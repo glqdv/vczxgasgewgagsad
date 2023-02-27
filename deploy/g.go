@@ -51,6 +51,7 @@ func AutoLogin(auth ...string) {
 			gs.Str("no auth session:" + apath).Println()
 		}
 	}
+	time.Sleep(3 * time.Second)
 	gs.Str("User:%s Pwd:%s / last: %s / if Proxy : %s").F(username, pwd, last, proxy).Color("g", "B", "F").Println("Check")
 	for {
 
@@ -93,7 +94,7 @@ func AutoLogin(auth ...string) {
 				}
 
 			}
-			time.Sleep(5 * time.Second)
+
 		}
 		gs.Dict[any]{
 			"name":     username,
@@ -101,7 +102,7 @@ func AutoLogin(auth ...string) {
 			"last":     last,
 			"proxy":    proxy,
 		}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
-
+		time.Sleep(5 * time.Second)
 	}
 
 }

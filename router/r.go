@@ -307,6 +307,11 @@ func CheckStatus() (can, startFirewall, status bool) {
 			return
 		}
 		startFirewall = true
+		if !IsRouteRedirectOk() {
+			RestartRouterMode()
+		} else if !IsStartRouteMode() {
+			RestartRouterMode()
+		}
 		if pids := findProc("redsocks"); pids.Count() > 0 {
 			status = true
 		}

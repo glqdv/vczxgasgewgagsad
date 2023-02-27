@@ -929,8 +929,10 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 		} else {
 			c.LogErr("read", err, host, eid, proxyType)
 		}
-
-		continued = true
+		c.LockArea(func() {
+			c.AliveCount -= 1
+		})
+		// continued = true
 		return
 	}
 	if bytes.Equal(_buf, prosocks5.Socks5Confirm) {
@@ -940,7 +942,9 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 				c.LogErr("rely", err, host, eid, proxyType)
 
 				c.ErrRecord(eid, 1)
-
+				c.LockArea(func() {
+					c.AliveCount -= 1
+				})
 				remotecon.Close()
 				return continued, err
 			}
@@ -951,7 +955,7 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 
 	err = nil
 	c.LogStat()
-	remotecon.SetReadDeadline(time.Now().Add(30 * time.Minute))
+	remotecon.SetReadDeadline(time.Now().Add(24 * time.Hour))
 	c.Pipe(socks5con, remotecon)
 	socks5con.Close()
 	remotecon.Close()
