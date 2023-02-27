@@ -113,7 +113,7 @@ func (quicServer *QuicServer) accpeStream(con quic.Connection) (err error) {
 		}
 
 		go func() {
-			quicServer.handleConn(WrapQuicNetConn(stream))
+			quicServer.handleConn(WrapQuicNetConn(stream, con.RemoteAddr(), con.LocalAddr()))
 			quicServer.AcceptConn -= 1
 		}()
 		quicServer.AcceptConn += 1

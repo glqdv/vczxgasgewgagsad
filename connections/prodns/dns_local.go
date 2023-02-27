@@ -39,6 +39,7 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	msg := dns.Msg{}
 	msg.SetReply(r)
 	// fin := false
+	defer w.Close()
 	if len(r.Question) == 0 {
 		w.WriteMsg(&msg)
 		return
@@ -129,9 +130,15 @@ func (this *DNSHandler) ResolveLocal(w dns.ResponseWriter, msg dns.Msg) bool {
 }
 
 func SetConfigIP(ip string) {
-	domainsToAddresses["condfig.me"] = &DNSRecord{
-		Host: "condfig.me",
-		IPs:  gs.List[string]{ip},
+	domainsToAddresses["config.me."] = &DNSRecord{
+		Host:    "config.me.",
+		IPs:     gs.List[string]{"99.254.254.254"},
+		timeout: time.Now().Add(9999 * time.Hour),
+	}
+	domainsToAddresses["local.me."] = &DNSRecord{
+		Host:    "local.me.",
+		IPs:     gs.List[string]{"99.254.254.254"},
+		timeout: time.Now().Add(9999 * time.Hour),
 	}
 }
 
@@ -213,7 +220,6 @@ func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool
 			gs.Str("before vanish").Color("g", "B").Println(domain)
 			return true
 		}
-
 	}
 
 	return false

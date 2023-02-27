@@ -35,6 +35,7 @@ func TestServer(server string) (t time.Duration, IDS gs.List[string]) {
 	}
 
 	if res, err := HTTPSGet(f + "/proxy-info"); err == nil {
+
 		res.Json().Every(func(k string, v any) {
 			if k == "status" {
 				// gs.S(v).Color("g").Println(server)

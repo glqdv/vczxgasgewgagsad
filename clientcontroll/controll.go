@@ -221,6 +221,9 @@ func (c *ClientControl) GetRouteLoc() string {
 		return "Connecting ...."
 	}
 	fs := gs.Str(c.Loc).SplitSpace()
+	if len(fs) == 0 {
+		return c.Loc
+	}
 	e := fs[:fs.Len()-1].Join(" ")
 	last := fs[fs.Len()-1]
 	// gs.Str("'%s'").F(e).Println("Loc")
@@ -348,7 +351,7 @@ func (c *ClientControl) ErrSoGetNew(id string, ernum int) {
 	}
 
 	var err error
-	reply, err = servercontroll.HTTPSPost(addr+"/proxy-err", data)
+	reply, err = servercontroll.HTTPSPost(addr+"/proxy-err", data, 10)
 	if err != nil {
 		c.LockArea(func() {
 			c.RouteErrCount += 1
@@ -422,7 +425,7 @@ func (c *ClientControl) ConfigServer(name, val string) bool {
 		"val":  val,
 	}
 	var err error
-	reply, err = servercontroll.HTTPSPost(addr+"/z-set", data)
+	reply, err = servercontroll.HTTPSPost(addr+"/z-set", data, 10)
 	if err != nil {
 
 		c.LockArea(func() {
@@ -515,7 +518,6 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	})
 	addr := Wrap(c.Addr.Str())
 	// gs.Str("Get Proxy Profile: '" + addr + "/proxy-get'").Println()
-	useTls := true
 
 	var reply gs.Str
 	var data gs.Dict[any]
@@ -528,13 +530,10 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	}
 	var err error
 	for _i := 0; _i < 5; _i++ {
-		if useTls {
-			reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data)
-		} else {
-			reply, err = servercontroll.HTTP3Post(addr+"/proxy-get", data)
-		}
-		if err != nil {
 
+		reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data, 10)
+		if err != nil {
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		break
@@ -683,6 +682,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 					continue
 				} else {
 					log.Fatal(err)
+					time.Sleep(1 * time.Second)
 				}
 				gs.Str("already listen wait !!!").Println("service")
 				// log.Fatal(err)
@@ -720,6 +720,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				}()
 
 			}
+			c.AliveCount += 1
 			c.acceptCount += 1
 			if err != nil {
 				gs.S(err.Error()).Println("accept err")
@@ -745,9 +746,16 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				}
 
 				if len(raw) > 9 && raw[0] == 5 && raw[3] == 1 {
-					if ip := net.IP(raw[4:8]).String(); prodns.IsLocal(ip) {
+					ip := net.IP(raw[4:8]).String()
+					// gs.Str(ip).Println("===>")
+					if prodns.IsLocal(ip) {
 						port := binary.BigEndian.Uint16(raw[8:10])
 						c.tcppipe(socks5con, gs.Str(ip+":%d").F(port))
+						return
+					} else if ip == "99.254.254.254" {
+
+						gs.Str("==== Config me ====").Color("b").Println("Config")
+						c.RedirectConfig(socks5con)
 						return
 					}
 
@@ -766,6 +774,18 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 	c.closed = true
 
 	return
+}
+
+func (c *ClientControl) RedirectConfig(l net.Conn) {
+	defer l.Close()
+	l.Write(prosocks5.Socks5Confirm)
+	_t := make([]byte, 4096)
+	l.Read(_t)
+	ip := router.GetGatewayIP()
+	gs.Str("Config IP :" + ip).Color("b").Println("To Config")
+	l.Write([]byte(gs.Str(`HTTP/1.1 302 Found
+Location: http://%s:35555`).F(ip) + "\r\n\r\n"))
+
 }
 
 func (c *ClientControl) LogTest(raw []byte, host, l string) {
@@ -813,6 +833,7 @@ func (c *ClientControl) ErrVanish(eid string) {
 }
 
 func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool, raw []byte, host string) (err error) {
+	defer socks5con.Close()
 	if gs.Str(host).StartsWith("c://") {
 		// c.SetOutFile(socks5con)
 		socks5con.Write([]byte("END Controll :" + host))
@@ -839,7 +860,9 @@ func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool,
 		c.LockArea(func() {
 			c.RouteErrCount += 1
 		})
-
+		if remotecon != nil {
+			remotecon.Close()
+		}
 		// continue
 		return
 	}
@@ -934,7 +957,6 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 	remotecon.Close()
 	c.LockArea(func() {
 		c.AliveCount -= 1
-		c.AliveCount += 1
 		if c.acceptCount > 655300 {
 			c.acceptCount = 1
 			c.errCon = 0

@@ -18,6 +18,7 @@ import (
 
 var (
 	LAST_USE_LOCAL_ADDR = ""
+	LOCALIP             = ""
 )
 
 func redSocksStart(i int) {
@@ -55,7 +56,6 @@ func GetIface() (string, string) {
 					if gs.Str(i.Name).In("guest") {
 						continue
 					}
-
 					return i.Name, ip
 				}
 			}
@@ -64,9 +64,14 @@ func GetIface() (string, string) {
 	return "", ""
 }
 
+func GetGatewayIP() string {
+	return LOCALIP
+}
+
 func IPTahbleRouteSet(Pre string) string {
 	iface, gatewayip := GetIface()
 	prodns.SetConfigIP(gatewayip)
+	LOCALIP = gatewayip
 	gs.Str("iface: %s | ip: %s").F(iface, gatewayip).Println("firewall")
 	if res := gn.AsReq(gs.Str("http://localhost:35555/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 		"op": "test",

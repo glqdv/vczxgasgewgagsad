@@ -1,6 +1,10 @@
 package prodns
 
-import "gitee.com/dark.H/gs"
+import (
+	"regexp"
+
+	"gitee.com/dark.H/gs"
+)
 
 func LoadLocalRule(path string) {
 	if e := gs.Str(path); e.IsExists() {
@@ -37,13 +41,22 @@ func IsLocal(ip string) (ok bool) {
 
 	_, ok = local2host[ip]
 	if !ok {
-		fuzzyHost.Every(func(no int, i string) {
+		for _, i := range fuzzyHost {
+			if ok {
+				break
+			}
 			if gs.Str(i).In("*") {
-				if gs.Str(ip).In(gs.Str(i).Replace("*", "")) {
+				if testC, err := regexp.Compile(string(gs.Str(i).Replace("*", ".*"))); err == nil {
+					if testC.MatchString(ip) {
+						ok = true
+					}
+				}
+			} else {
+				if i == ip {
 					ok = true
 				}
 			}
-		})
+		}
 	}
 	return
 }

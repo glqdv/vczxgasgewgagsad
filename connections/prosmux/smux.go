@@ -163,7 +163,12 @@ func (s *SmuxConfig) NewConnnect() (con net.Conn, err error) {
 
 func (s *SmuxConfig) Close() error {
 	if s.Session != nil {
-		return s.Session.Close()
+
+		s.Session.Close()
+		if s.ClientConn != nil {
+			return s.ClientConn.Close()
+		}
+		return nil
 	}
 
 	return nil

@@ -64,7 +64,6 @@ func SendDNS(server gs.Str, domains ...string) (reply gs.Dict[string]) {
 				})
 			}
 		}
-
 	}
 	return
 }

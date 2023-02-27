@@ -36,6 +36,7 @@ func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
 }
 
 func (qc *QuicClient) IsClosed() bool {
+
 	return qc.isclosed
 }
 
@@ -74,7 +75,8 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 			return nil, errors.New("[try agin  quic reconnect err]: " + err.Error())
 		}
 	}
-	qq := WrapQuicNetConn(stream)
+
+	qq := WrapQuicNetConn(stream, q.qcon.RemoteAddr(), q.qcon.LocalAddr())
 	return qq, err
 }
 

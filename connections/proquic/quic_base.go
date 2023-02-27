@@ -16,26 +16,28 @@ var (
 )
 
 type QuicConn struct {
-	steam quic.Stream
+	steam      quic.Stream
+	remoteAddr net.Addr
+	localAddr  net.Addr
 }
 
-func WrapQuicNetConn(s quic.Stream) (qc *QuicConn) {
+func WrapQuicNetConn(s quic.Stream, remoteAddr, local net.Addr) (qc *QuicConn) {
 	return &QuicConn{
-		steam: s,
+		steam:      s,
+		remoteAddr: remoteAddr,
+		localAddr:  local,
 	}
 }
 
 func (quic *QuicConn) LocalAddr() net.Addr {
-	return &net.TCPAddr{
-		IP:   net.IPv4(byte(127), byte(0), byte(0), byte(1)),
-		Port: 0,
-	}
+	// return &net.TCPAddr{
+	// 	IP:   net.IPv4(byte(127), byte(0), byte(0), byte(1)),
+	// 	Port: 0,
+	// }
+	return quic.localAddr
 }
 func (quic *QuicConn) RemoteAddr() net.Addr {
-	return &net.TCPAddr{
-		IP:   net.IPv4(byte(0), byte(0), byte(0), byte(1)),
-		Port: 0,
-	}
+	return quic.remoteAddr
 }
 
 func (quic *QuicConn) Read(buf []byte) (n int, err error) {

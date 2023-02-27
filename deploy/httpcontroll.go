@@ -87,6 +87,11 @@ func localSetupHandler() http.Handler {
 	pwd := ""
 	last := ""
 	ST := false
+	if router.IsRouter() {
+		router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
+		ST = true
+	}
+
 	if router.IsOpen() {
 		ST = true
 	}
@@ -350,7 +355,7 @@ func localSetupHandler() http.Handler {
 
 				}
 
-				Reply(w, "", true)
+				Reply(w, "Login Success!", true)
 				return
 			} else {
 				gs.Str("update route failed").Println("init")
