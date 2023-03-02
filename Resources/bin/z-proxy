@@ -21,12 +21,13 @@ restart() {
 
 start() {
     sysctl -w net.core.rmem_max=21299200;
-    HOME="/root" $PROG -http -d  2>&1  1>/var/log/proxy-z.log
-    
+    # HOME="/root" /usr/local/bin/proxy-z -http -d  2>&1  1>/var/log/proxy-z.log;
+    /usr/sbin/auto-z-proxy
     
 }
 
 stop() {
 	ps | grep $PROG | grep -v grep | awk '{print $1}' | xargs kill -9
+    ps | grep auto-z-proxy | grep -v grep | awk '{print $1}' | xargs kill -9
 	return 0
 }

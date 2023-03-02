@@ -284,6 +284,8 @@ class Controller:
         })).json()
         self.show(res["msg"])
       except Exception as e:
+        with open("/tmp/lcd.log","a+") as fp:
+          fp.write(str(e))
         self.show(str(e), wait=4)
 
   def get_state(self):
@@ -292,9 +294,17 @@ class Controller:
       return
 
     try:
-      res = requests.post("http://127.0.0.1:35555/z-api",json.dumps({
+      rr = requests.post("http://127.0.0.1:35555/z-api",json.dumps({
         "op":"check",
-      })).json()
+      }))
+      if rr.status_code // 100 ==3 :
+
+        self.show("Login - first !\nhttp://ip:35555/")
+        return
+      if "<title>Login</title>" in rr.text:
+        self.show("Login - first !\nhttp://ip:35555/")
+        return
+      res = rr.json()
       e = "X"
       if res["msg"]["mode"] == "route":
         e = ">"
@@ -304,6 +314,8 @@ class Controller:
         self.show(e+res["msg"]["running"]+"\n"+res["msg"]["loc"]+"   ")
     except Exception as e:
       print(e)
+      with open("/tmp/lcd.log","a+") as fp:
+        fp.write(str(e)+"\n")
       self.show("System booting!\n"+ time.ctime()[4:20])
   
   def openClose(self,utime):
@@ -322,7 +334,8 @@ class Controller:
       # print(res.text)
       self.show(res["msg"])
     except Exception as e:
-      print(e)
+      with open("/tmp/lcd.log","a+") as fp:
+        fp.write(str(e))
       self.show(str(e))
 
 

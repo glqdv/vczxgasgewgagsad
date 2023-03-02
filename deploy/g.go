@@ -51,18 +51,27 @@ func AutoLogin(auth ...string) {
 			gs.Str("no auth session:" + apath).Println()
 		}
 	}
+	time.Sleep(3 * time.Second)
 	gs.Str("User:%s Pwd:%s / last: %s / if Proxy : %s").F(username, pwd, last, proxy).Color("g", "B", "F").Println("Check")
-	time.Sleep(10 * time.Second)
+	for {
 
-	if con {
-		gs.Str("Auto login").Println()
-		if last != "" {
-			gn.AsReq(gs.Str("http://localhost:35555/z-login").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
-				"name":     username,
-				"password": pwd,
-				"last":     last,
-				"proxy":    proxy,
-			}.Json())).Go()
+		if con {
+			gs.Str("Auto login").Println()
+			if last != "" {
+				res := gn.AsReq(gs.Str("http://localhost:35555/z-login").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
+					"name":     username,
+					"password": pwd,
+					"last":     last,
+					"proxy":    proxy,
+				}.Json())).Go()
+				if res.Err != nil {
+				} else {
+					if res.Body().In("Login Success!") {
+						break
+					}
+
+				}
+			}
 
 			gs.Dict[any]{
 				"name":     username,
@@ -71,19 +80,29 @@ func AutoLogin(auth ...string) {
 				"proxy":    proxy,
 			}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
 		} else {
-			gn.AsReq(gs.Str("http://localhost:35555/z-login").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
+			res := gn.AsReq(gs.Str("http://localhost:35555/z-login").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 				"name":     username,
 				"password": pwd,
 				"last":     last,
 				"proxy":    proxy,
 			}.Json())).Go()
-			gs.Dict[any]{
-				"name":     username,
-				"password": pwd,
-				"last":     last,
-				"proxy":    proxy,
-			}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+			if res.Err != nil {
+
+			} else {
+				if res.Body().In("Login Success!") {
+					break
+				}
+
+			}
 
 		}
+		gs.Dict[any]{
+			"name":     username,
+			"password": pwd,
+			"last":     last,
+			"proxy":    proxy,
+		}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+		time.Sleep(5 * time.Second)
 	}
+
 }

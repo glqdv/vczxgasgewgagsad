@@ -1,6 +1,10 @@
 package prodns
 
-import "gitee.com/dark.H/gs"
+import (
+	"regexp"
+
+	"gitee.com/dark.H/gs"
+)
 
 func LoadLocalRule(path string) {
 	if e := gs.Str(path); e.IsExists() {
@@ -37,19 +41,38 @@ func IsLocal(ip string) (ok bool) {
 
 	_, ok = local2host[ip]
 	if !ok {
-		fuzzyHost.Every(func(no int, i string) {
-			ok = gs.Str(ip).In(gs.Str(i).Replace("*", ""))
-
-		})
+		for _, i := range fuzzyHost {
+			if ok {
+				break
+			}
+			if gs.Str(i).In("*") {
+				if testC, err := regexp.Compile(string(gs.Str(i).Replace("*", ".*"))); err == nil {
+					if testC.MatchString(ip) {
+						ok = true
+					}
+				}
+			} else {
+				if i == ip {
+					ok = true
+				}
+			}
+		}
 	}
 	return
 }
 
 func Clear() {
+	names := gs.List[string]{}
+	for n := range domainsToAddresses {
+		names = names.Add(n)
+	}
+	names.Every(func(no int, i string) {
+		delete(domainsToAddresses, i)
+	})
+	gs.Str("Clear dns cache").Color("g").Println()
 	domainsToAddresses = make(map[string]*DNSRecord)
 	gs.Str("~").ExpandUser().PathJoin(".config").Mkdir()
 	s := gs.Str("~").ExpandUser().PathJoin(".config", "local.conf")
 	s.Dirname().Mkdir()
 	LoadLocalRule(s.Str())
-	gs.Str("Clear DNS Cache ").Color("c", "B", "F").Println("DNS Clear")
 }

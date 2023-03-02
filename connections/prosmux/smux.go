@@ -56,11 +56,14 @@ type SmuxConfig struct {
 	clienConf       *smux.Config
 	Session         *smux.Session
 	ZeroToDel       *bool
+	ProxyType       string
+	eid             string
 	handleStream    func(conn net.Conn) (err error)
 }
 
 func (kconfig *SmuxConfig) SetAsDefault() {
 	kconfig.Mode = "fast4"
+
 	kconfig.KeepAlive = 10
 	kconfig.MTU = 1350
 	kconfig.DataShard = 10
@@ -91,12 +94,13 @@ func NewSmuxServerNull() (s *SmuxConfig) {
 	return
 }
 
-func NewSmuxClient(conn net.Conn) (s *SmuxConfig) {
+func NewSmuxClient(conn net.Conn, eid, proxyType string) (s *SmuxConfig) {
 	s = new(SmuxConfig)
 	// Create a multiplexer using smux
 	// conf := s.GenerateConfig()
 	s.ClientConn = conn
 	s.SetAsDefault()
+	s.ProxyType = proxyType
 	s.clienConf = s.GenerateConfig()
 	// s.UpdateMode()
 	if s.ClientConn == nil {
@@ -111,11 +115,20 @@ func NewSmuxClient(conn net.Conn) (s *SmuxConfig) {
 	s.Session = mux
 	return
 }
+
+func (s *SmuxConfig) ID() string {
+	return s.eid
+}
+
 func (s *SmuxConfig) IsClosed() bool {
 	if s.Session == nil {
 		return false
 	}
 	return s.Session.IsClosed()
+}
+
+func (s *SmuxConfig) GetProxyType() string {
+	return s.ProxyType
 }
 
 func (s *SmuxConfig) NewConnnect() (con net.Conn, err error) {
@@ -150,7 +163,12 @@ func (s *SmuxConfig) NewConnnect() (con net.Conn, err error) {
 
 func (s *SmuxConfig) Close() error {
 	if s.Session != nil {
-		return s.Session.Close()
+
+		s.Session.Close()
+		if s.ClientConn != nil {
+			return s.ClientConn.Close()
+		}
+		return nil
 	}
 
 	return nil

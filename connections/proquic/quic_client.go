@@ -15,6 +15,7 @@ type QuicClient struct {
 	isclosed  bool
 	tlsconfig *tls.Config
 	qcon      quic.Connection
+	eid       string
 }
 
 func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
@@ -30,11 +31,21 @@ func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
 		return qc, err
 	}
 	qc.qcon = conn
+	qc.eid = config.ID
 	return
 }
 
 func (qc *QuicClient) IsClosed() bool {
+
 	return qc.isclosed
+}
+
+func (qc *QuicClient) GetProxyType() string {
+	return "quic"
+}
+
+func (qc *QuicClient) ID() string {
+	return qc.eid
 }
 
 func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
@@ -46,7 +57,8 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	// gs.Str("open stream !!").Println()
 	// cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	// conn.
-	stream, err = conn.OpenStreamSync(context.Background())
+	// stream, err = conn.OpenStreamSync(context.Background())
+	stream, err = conn.OpenStream()
 
 	if err != nil {
 
@@ -63,7 +75,8 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 			return nil, errors.New("[try agin  quic reconnect err]: " + err.Error())
 		}
 	}
-	qq := WrapQuicNetConn(stream)
+
+	qq := WrapQuicNetConn(stream, q.qcon.RemoteAddr(), q.qcon.LocalAddr())
 	return qq, err
 }
 

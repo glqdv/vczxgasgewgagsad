@@ -18,6 +18,7 @@ import (
 
 var (
 	LAST_USE_LOCAL_ADDR = ""
+	LOCALIP             = ""
 )
 
 func redSocksStart(i int) {
@@ -55,7 +56,6 @@ func GetIface() (string, string) {
 					if gs.Str(i.Name).In("guest") {
 						continue
 					}
-
 					return i.Name, ip
 				}
 			}
@@ -64,9 +64,14 @@ func GetIface() (string, string) {
 	return "", ""
 }
 
+func GetGatewayIP() string {
+	return LOCALIP
+}
+
 func IPTahbleRouteSet(Pre string) string {
 	iface, gatewayip := GetIface()
 	prodns.SetConfigIP(gatewayip)
+	LOCALIP = gatewayip
 	gs.Str("iface: %s | ip: %s").F(iface, gatewayip).Println("firewall")
 	if res := gn.AsReq(gs.Str("http://localhost:35555/z-api").AsRequest().SetMethod("post").SetBody(gs.Dict[any]{
 		"op": "test",
@@ -302,6 +307,11 @@ func CheckStatus() (can, startFirewall, status bool) {
 			return
 		}
 		startFirewall = true
+		if !IsRouteRedirectOk() {
+			RestartRouterMode()
+		} else if !IsStartRouteMode() {
+			RestartRouterMode()
+		}
 		if pids := findProc("redsocks"); pids.Count() > 0 {
 			status = true
 		}
@@ -427,6 +437,20 @@ func ReleaseRedsocks() {
 			}
 		}
 
+		if IsRouter() {
+			if !gs.Str("/usr/sbin/auto-z-proxy").IsExists() {
+				_, fp, err := gs.Str("/usr/sbin/auto-z-proxy").OpenFile(gs.O_NEW_WRITE)
+				if err == nil {
+					if len(os.Args) > 0 {
+						if buf, err := asset.Asset("Resources/bin/auto-z-proxy"); err == nil {
+							fp.Write(buf)
+						}
+					}
+					fp.Close()
+				}
+			}
+		}
+
 	}
 }
 
@@ -464,6 +488,7 @@ func BuildInit() {
 		gs.Str("/etc/init.d/proxy-z").Rm()
 		gs.Str("/etc/rc.d/S96proxy-z").Rm()
 		gs.Str("/usr/local/bin/proxy-z").Rm()
+		gs.Str("/usr/sbin/auto-proxy-z").Rm()
 		ReleaseRedsocks()
 
 	}

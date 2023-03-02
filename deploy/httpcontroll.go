@@ -30,6 +30,7 @@ type ClientInterface interface {
 	GetRouteLoc() string
 	SetRouteLoc(loc string)
 	SetChangeRoute(f func() string)
+	IfRunning() bool
 	ChangeProxyType(tp string)
 	GetListenPort() (socks5port, httpport, dnsport int)
 }
@@ -86,6 +87,11 @@ func localSetupHandler() http.Handler {
 	pwd := ""
 	last := ""
 	ST := false
+	if router.IsRouter() {
+		router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
+		ST = true
+	}
+
 	if router.IsOpen() {
 		ST = true
 	}
@@ -98,21 +104,28 @@ func localSetupHandler() http.Handler {
 			case <-dnsCheck.C:
 				if globalClient.ClientConf != nil {
 					if !router.IsDNSRunning() {
-						gs.Str("DNS Service is Closed").Color("r").Println("Check")
-						go globalClient.ClientConf.DNSListen()
+						if router.IsRouter() {
+							gs.Str("DNS Service is Closed").Color("r").Println("Check")
+							go globalClient.ClientConf.DNSListen()
+						}
 					} else {
-						gs.Str("DNS Service is RUNNING").Color("g").Println("Check")
+						// gs.Str("DNS Service is RUNNING").Color("g").Println("Check")
 					}
 				}
 				if router.IsStartRouteMode() {
-					if !router.IsRedsocksRunning() || !router.IsRouteRedirectOk() {
+					if !router.IsRedsocksRunning() {
 						gs.Str("Route iptables/redsocks Closed").Color("r").Println("Check")
 						router.RestartRouterMode()
 
 					} else {
-						gs.Str("Route iptables/redsocks RUNNING").Color("r").Println("Check")
+						// gs.Str("Route iptables/redsocks RUNNING").Color("g").Println("Check")
+					}
+					if !router.IsRouteRedirectOk() {
+						gs.Str("Route iptables/redsocks Closed").Color("r").Println("Check")
+						router.RestartRouterMode()
 					}
 				}
+
 			case <-inter.C:
 
 				if globalClient.Routes.Count() > 0 {
@@ -332,7 +345,6 @@ func localSetupHandler() http.Handler {
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
 						go globalClient.ClientConf.Socks5Listen()
-						go globalClient.ClientConf.DNSListen()
 
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
@@ -348,10 +360,11 @@ func localSetupHandler() http.Handler {
 
 				}
 
-				Reply(w, "", true)
+				Reply(w, "Login Success!", true)
 				return
 			} else {
 				gs.Str("update route failed").Println("init")
+				// INFO := ""
 				w.WriteHeader(400)
 				Reply(w, "", false)
 			}
@@ -516,6 +529,10 @@ func localSetupHandler() http.Handler {
 				return
 
 			case "switch":
+				if globalClient.ClientConf != nil && !globalClient.ClientConf.IfRunning() {
+					Reply(w, "wait ...", false)
+					return
+				}
 				if host, ok := d["host"]; ok && host != nil {
 					gs.Str(host.(string)).Color("g", "B").Println("Swtich")
 					if globalClient.ClientConf == nil {
@@ -536,7 +553,7 @@ func localSetupHandler() http.Handler {
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
-						go globalClient.ClientConf.DNSListen()
+
 						go globalClient.ClientConf.Socks5Listen()
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
@@ -572,7 +589,7 @@ func localSetupHandler() http.Handler {
 
 						nowhost = string(globalClient.Routes[0].Host)
 						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT)
-						go globalClient.ClientConf.DNSListen()
+
 						go globalClient.ClientConf.Socks5Listen()
 						gs.Dict[any]{
 							"name":     user,
@@ -635,8 +652,9 @@ func localSetupHandler() http.Handler {
 					}
 				} else {
 					Reply(w, gs.Dict[any]{
-						// "global":  IsOpenGlobalState(),
-						"running": "China-net",
+						"mode":    "",
+						"loc":     "China-no-login",
+						"running": "login first!",
 					}, true)
 				}
 				return
@@ -656,8 +674,11 @@ func localSetupHandler() http.Handler {
 
 func LocalAPI(openbrowser, global bool) {
 	server := &http.Server{
-		Handler: localSetupHandler(),
-		Addr:    "0.0.0.0:35555",
+		Handler:      localSetupHandler(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Addr:         "0.0.0.0:35555",
 	}
 	if !openbrowser {
 		go func() {

@@ -19,6 +19,7 @@ import (
 	"gitee.com/dark.H/ProxyZ/connections/prosmux"
 	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
 	"gitee.com/dark.H/ProxyZ/connections/protls"
+	"gitee.com/dark.H/ProxyZ/router"
 	"gitee.com/dark.H/ProxyZ/servercontroll"
 	"gitee.com/dark.H/ProxyZ/vpn"
 	"gitee.com/dark.H/gs"
@@ -27,7 +28,6 @@ import (
 var (
 	errInvalidWrite = errors.New("invalid write result")
 	ErrRouteISBreak = errors.New("route is break")
-	backupRoute     = make(chan *ClientControl)
 	cityMap         = gs.Dict[string]{
 		"Los Angeles":    "US",
 		"Los-Angeles":    "US",
@@ -67,9 +67,6 @@ func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 	}
 
 	cli := NewClientControll(server, l)
-	if startDNS {
-		go cli.DNSListen()
-	}
 	if startHTTPProxy {
 		go cli.HttpListen()
 	}
@@ -78,25 +75,12 @@ func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 
 }
 
-func PrepareRoute(server string, l int) bool {
-	cli := NewClientControll(server, l)
-	if cli.InitializationTunnels() {
-		select {
-		case backupRoute <- cli:
-
-		default:
-
-		}
-		return true
-	}
-	return false
-
-}
-
 type SmuxorQuicClient interface {
 	NewConnnect() (c net.Conn, err error)
 	Close() error
 	IsClosed() bool
+	ID() string
+	GetProxyType() string
 }
 
 type ClientControl struct {
@@ -120,18 +104,20 @@ type ClientControl struct {
 	closeFlag      bool
 	Usevpn         bool
 	dnsservice     bool
+	IfStartDNS     bool
 	inited         bool
+	IsBreak        bool
 	IsRunning      bool
 	vpnHandler     *vpn.VPNHandler
 	setTimer       *time.Timer
 	failedHost     Set[string]
 	GetNewRoute    func() string
-	CloseDNS       func() error
 	proxyProfiles  chan *base.ProtocolConfig
 	initProfiles   int
 	confNum        int
 	errCon         int
 	errorid        gs.Dict[int]
+	ReportingMark  gs.Dict[bool]
 	statusSignal   gs.Strs
 }
 
@@ -141,11 +127,12 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 	c := &ClientControl{
 		Addr:           gs.Str(addr),
 		ListenPort:     listenport,
-		ClientNum:      30,
+		ClientNum:      100,
 		DnsServicePort: 60053,
 		lastUse:        -1,
 		confNum:        10,
 		errorid:        make(gs.Dict[int]),
+		ReportingMark:  make(gs.Dict[bool]),
 		proxyProfiles:  make(chan *base.ProtocolConfig, 10),
 	}
 	for i := 0; i < c.ClientNum; i++ {
@@ -156,7 +143,13 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 }
 
 func (c *ClientControl) Init() {
-	c.lastUse = -1
+	c.lastUse = 0
+	if c.proxyProfiles != nil {
+		for len(c.proxyProfiles) > 0 {
+			<-c.proxyProfiles
+		}
+		gs.Str("Clar Proxy Profiles ").Println("Init")
+	}
 	c.proxyProfiles = make(chan *base.ProtocolConfig, 10)
 	c.initProfiles = 0
 	c.errorid = make(gs.Dict[int])
@@ -164,7 +157,9 @@ func (c *ClientControl) Init() {
 	c.inited = false
 	c.dnsservice = false
 	c.IsRunning = false
+	c.IsBreak = false
 	c.RouteErrCount = 0
+	time.Sleep(1 * time.Second)
 }
 
 func RecvMsg(reply gs.Str) (di any, o bool) {
@@ -182,14 +177,21 @@ func RecvMsg(reply gs.Str) (di any, o bool) {
 	}
 }
 
+func (c *ClientControl) SetIfStartDNS(b bool) {
+	c.IfStartDNS = b
+}
+
 func (c *ClientControl) TryClose() {
 	c.closeFlag = true
+	c.SetRouteLoc("Closing...")
 	go func() {
 		if c, err := net.Dial("tcp", string(gs.Str("127.0.0.1:%d").F(c.ListenPort))); err == nil {
 			time.Sleep(100 * time.Millisecond)
 			c.Close()
 			gs.Str("Send Close Signal").Println("Close")
+
 		}
+		// c.SetRouteLoc("Closed")
 	}()
 }
 
@@ -210,11 +212,18 @@ func (c *ClientControl) GetRoute() string {
 	return e.Str()
 }
 
+func (c *ClientControl) IfRunning() bool {
+	return c.IsRunning
+}
+
 func (c *ClientControl) GetRouteLoc() string {
 	if !c.IsRunning {
 		return "Connecting ...."
 	}
 	fs := gs.Str(c.Loc).SplitSpace()
+	if len(fs) == 0 {
+		return c.Loc
+	}
 	e := fs[:fs.Len()-1].Join(" ")
 	last := fs[fs.Len()-1]
 	// gs.Str("'%s'").F(e).Println("Loc")
@@ -229,9 +238,7 @@ func (c *ClientControl) SetRouteLoc(loc string) {
 }
 
 func (c *ClientControl) ChangeRoute(host string) bool {
-
 	if c.closeFlag {
-
 		c.Addr = gs.Str(Wrap(host))
 		gs.Str("Change Client Controll:" + c.Addr).Println()
 	} else {
@@ -254,21 +261,14 @@ func (c *ClientControl) ChangeRoute(host string) bool {
 		}
 	})
 
-	time.Sleep(1 * time.Second)
-
 	prodns.Clear()
 
-	if c.CloseDNS != nil {
-		c.CloseDNS()
-		gs.Str("Close DNS Service ").Color("g").Println()
-	}
 	c.Addr = gs.Str(host)
-	gs.Str("server closed !").Color("g").Println()
 	c.Init()
-
-	go c.DNSListen()
-	gs.Str("Start New route:" + c.Addr).Color("g").Println()
+	gs.Str("server init !").Color("g").Println()
+	prodns.SetDNSAddr(host)
 	if err := c.Socks5Listen(); err == ErrRouteISBreak {
+		gs.Str("Gs. is Break ").Println()
 		return false
 	} else {
 		return true
@@ -286,35 +286,34 @@ func (c *ClientControl) ReportErrorProxy() (conf *base.ProtocolConfig) {
 
 	c.LockArea(func() {
 		for id, k := range c.errorid {
-			if k > 0 {
-				ids = ids.Add(id)
+			if k > 4 {
 
+				if _, ok := c.ReportingMark[id]; !ok {
+					c.ReportingMark[id] = true
+					ids = ids.Add(id)
+				}
 			}
 		}
 
 	})
-	// LOOP:
 
 	left := len(ids)
-	gs.Str("Report Err: %d [start]").F(left).Color("y").Println("ReportErrorProxy")
-	w := sync.WaitGroup{}
+
+	ids.Every(func(no int, i string) {
+		gs.Str(i).Println("Need Replace")
+	})
+	// w := sync.WaitGroup{}
 	for left > 0 {
 		select {
 		case thisconf := <-c.proxyProfiles:
 			if ids.In(thisconf.ID) {
 				errconf = thisconf
-				w.Add(1)
-				go func(ww *sync.WaitGroup) {
-					defer ww.Done()
-					errnum := c.errorid[errconf.ID]
-
-					c.LockArea(func() {
-						c.ErrCount -= errnum
-					})
-
-					c.ErrSoGetNew(errconf.ID, errnum)
-					gs.Str("Report Err: %d").F(left).Color("y").Println("ReportErrorProxy")
-				}(&w)
+				errnum := c.errorid[errconf.ID]
+				c.LockArea(func() {
+					c.ErrCount -= errnum
+				})
+				c.ErrSoGetNew(errconf.ID, errnum)
+				gs.Str("Report Err: %d").F(left).Color("y").Println("ReportErrorProxy")
 				left -= 1
 			} else {
 				c.proxyProfiles <- thisconf
@@ -323,7 +322,7 @@ func (c *ClientControl) ReportErrorProxy() (conf *base.ProtocolConfig) {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
-	w.Wait()
+
 	for i := 0; i < c.ClientNum; i++ {
 		if se := c.SmuxClients[i]; se != nil {
 			se.Close()
@@ -352,7 +351,7 @@ func (c *ClientControl) ErrSoGetNew(id string, ernum int) {
 	}
 
 	var err error
-	reply, err = servercontroll.HTTPSPost("https://"+addr+"/proxy-err", data)
+	reply, err = servercontroll.HTTPSPost(addr+"/proxy-err", data, 10)
 	if err != nil {
 		c.LockArea(func() {
 			c.RouteErrCount += 1
@@ -389,8 +388,12 @@ func (c *ClientControl) ErrSoGetNew(id string, ernum int) {
 			if c.RouteErrCount > 0 {
 				c.RouteErrCount -= 1
 			}
+			delete(c.ReportingMark, id)
 		})
-		gs.Str("Can not Re Proxy ! \n\t").Add(reply.Color("r")).Println("Big Err")
+		c.FixBuildSmux(id)
+		// gs.Str("Can not Re Proxy ! \n\t").Add(reply.Color("r")).Println("Big Err")
+	} else {
+
 	}
 
 }
@@ -422,7 +425,7 @@ func (c *ClientControl) ConfigServer(name, val string) bool {
 		"val":  val,
 	}
 	var err error
-	reply, err = servercontroll.HTTPSPost(addr+"/z-set", data)
+	reply, err = servercontroll.HTTPSPost(addr+"/z-set", data, 10)
 	if err != nil {
 
 		c.LockArea(func() {
@@ -515,7 +518,6 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	})
 	addr := Wrap(c.Addr.Str())
 	// gs.Str("Get Proxy Profile: '" + addr + "/proxy-get'").Println()
-	useTls := true
 
 	var reply gs.Str
 	var data gs.Dict[any]
@@ -528,13 +530,10 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 	}
 	var err error
 	for _i := 0; _i < 5; _i++ {
-		if useTls {
-			reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data)
-		} else {
-			reply, err = servercontroll.HTTP3Post(addr+"/proxy-get", data)
-		}
-		if err != nil {
 
+		reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data, 10)
+		if err != nil {
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		break
@@ -612,27 +611,38 @@ func (c *ClientControl) SetOutFile(out io.WriteCloser) {
 }
 
 func (c *ClientControl) DNSListen() {
-	if !c.dnsservice {
-		port := c.DnsServicePort
-		dd := StartDNS(port, c, func() {
-			c.dnsservice = true
+	if prodns.IfStart {
+		return
+	}
+	for _i := 0; _i < 10; _i++ {
 
-		})
-		c.CloseDNS = dd.Shutdown
-		gs.Str("Wait Initialization finish .....").Color("g").Println()
-		for !c.inited {
-			time.Sleep(1 * time.Second)
+		if !c.dnsservice {
+			port := c.DnsServicePort
+			dd := StartDNS(port, c, func() {
+				c.dnsservice = true
+			})
+
+			gs.Str("Wait Initialization finish .....").Color("g").Println()
+			for !c.inited {
+				time.Sleep(1 * time.Second)
+			}
+			prodns.SetDNSAddr(c.Addr.Str())
+			// go prodns.BackgroundBatchSend(&c.RouteErrCount)
+			gs.Str("Start DNS (%s)").F(gs.Str(":%d").F(port).Color("g")).Println("dns")
+			err := dd.ListenAndServe()
+			if err != nil {
+				gs.Str("DNS (%s) | err : %s").F(gs.Str(":%d").F(port).Color("g"), err.Error()).Println("dns")
+			}
+			return
+		} else {
+			if router.IsRouter() {
+				gs.Str("Can no start dns because dnservice not allow !").Color("r").Println("wait 2s try again:" + gs.S(_i))
+				time.Sleep(2 * time.Second)
+
+			} else {
+				break
+			}
 		}
-
-		go prodns.BackgroundBatchSend(c.Addr.Str(), &c.closeFlag)
-		gs.Str("Start DNS (%s)").F(gs.Str(":%d").F(port).Color("g")).Println("dns")
-		err := dd.ListenAndServe()
-
-		if err != nil {
-			gs.Str("DNS (%s) | err : %s").F(gs.Str(":%d").F(port).Color("g"), err.Error()).Println("dns")
-		}
-	} else {
-		gs.Str("Can no start dns because dnservice not allow !").Color("r").Println()
 	}
 }
 
@@ -649,16 +659,18 @@ CORE ！！！！！！！！
 */
 func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 
-	RE_LISTEN := false
 	if inied != nil && inied[0] {
 
 	} else {
 		if !c.InitializationTunnels() {
+			c.IsRunning = false
+			c.IsBreak = true
 			return ErrRouteISBreak
 		}
 	}
 
-	var bak *ClientControl
+	go c.DNSListen()
+
 	if c.ListenPort != 0 {
 		var l net.Listener
 
@@ -666,9 +678,11 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 			l, err = net.Listen("tcp", "0.0.0.0:"+gs.S(c.ListenPort).Str())
 			if err != nil {
 				if gs.Str(err.Error()).In("bind: address already in use") {
+					time.Sleep(1 * time.Second)
 					continue
 				} else {
 					log.Fatal(err)
+					time.Sleep(1 * time.Second)
 				}
 				gs.Str("already listen wait !!!").Println("service")
 				// log.Fatal(err)
@@ -683,38 +697,14 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		gs.Str("Socks5 Start").Color("g", "B", "F").Println("service")
 	MLoop:
 		for {
-			if c.RouteErrCount > 20 {
-				if c.GetNewRoute != nil && !RE_LISTEN {
-					// ### BUG
-					l := c.GetNewRoute()
-					go func() {
-						for {
-							if !PrepareRoute(l, c.ListenPort) {
-								gs.Str("Wait 2 s try again!").Println()
-								time.Sleep(2 * time.Second)
-								l = c.GetNewRoute()
-							} else {
-								break
-							}
-
-						}
-					}()
-					RE_LISTEN = true
-					select {
-					case bak = <-backupRoute:
-						gs.Str("Use Backup Route").Color("g", "B", "U").Println()
-						break MLoop
-					}
-
-				} else {
-					gs.Str("no getNewRoute Function !!!!!").Color("r", "B").Println()
-				}
+			if c.RouteErrCount > 15 {
+				c.ChangeNextRoute()
+				break MLoop
+			} else if c.ErrCount > 70 {
+				c.ChangeNextRoute()
+				break MLoop
 			}
-			if c.ErrCount > 70 {
-				RE_LISTEN = true
-				break
-			}
-			if c.ErrCount > 7 {
+			if c.ErrCount > 12 {
 
 				go c.ReportErrorProxy()
 			}
@@ -730,6 +720,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				}()
 
 			}
+			c.AliveCount += 1
 			c.acceptCount += 1
 			if err != nil {
 				gs.S(err.Error()).Println("accept err")
@@ -755,9 +746,16 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				}
 
 				if len(raw) > 9 && raw[0] == 5 && raw[3] == 1 {
-					if ip := net.IP(raw[4:8]).String(); prodns.IsLocal(ip) {
+					ip := net.IP(raw[4:8]).String()
+					// gs.Str(ip).Println("===>")
+					if prodns.IsLocal(ip) {
 						port := binary.BigEndian.Uint16(raw[8:10])
 						c.tcppipe(socks5con, gs.Str(ip+":%d").F(port))
+						return
+					} else if ip == "99.254.254.254" {
+
+						gs.Str("==== Config me ====").Color("b").Println("Config")
+						c.RedirectConfig(socks5con)
 						return
 					}
 
@@ -766,7 +764,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				// if c.regionFilter(socks5con, raw, host) {
 				// 	return
 				// }
-				c.LogTest(raw, host, "accept")
+
 				c.OnBodyBeforeGetRemote(socks5con, true, raw, host)
 
 			}(socks5con)
@@ -774,21 +772,20 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		}
 	}
 	c.closed = true
-	if RE_LISTEN {
-
-		// c.ChangeNewRoute()
-		c.CloseDNS()
-		if bak != nil {
-			c.SetRouteLoc(bak.GetRouteLoc())
-			go bak.DNSListen()
-			bak.Socks5Listen()
-		}
-		// c.closed = false
-		// go c.DNSListen()
-		// c.Socks5Listen()
-	}
 
 	return
+}
+
+func (c *ClientControl) RedirectConfig(l net.Conn) {
+	defer l.Close()
+	l.Write(prosocks5.Socks5Confirm)
+	_t := make([]byte, 4096)
+	l.Read(_t)
+	ip := router.GetGatewayIP()
+	gs.Str("Config IP :" + ip).Color("b").Println("To Config")
+	l.Write([]byte(gs.Str(`HTTP/1.1 302 Found
+Location: http://%s:35555`).F(ip) + "\r\n\r\n"))
+
 }
 
 func (c *ClientControl) LogTest(raw []byte, host, l string) {
@@ -800,9 +797,9 @@ func (c *ClientControl) LogTest(raw []byte, host, l string) {
 			ip := net.IP(raw[4 : 4+net.IPv4len]).String()
 			host := prodns.SearchIP(ip)
 			if host != "" {
-				gs.Str(gs.Str("%15s").F(ip)+gs.Str("(%s)").F(host).Color("y")).Color("m", "U").Println("tcp " + l)
+				// gs.Str(gs.Str("%15s").F(ip)+gs.Str("(%s)         \r").F(host).Color("y")).Color("m", "U").Print("tcp " + l)
 			} else {
-				gs.Str(gs.Str("%15s").F(ip)+"(x)").Color("m", "U").Println("tcp " + l)
+				// gs.Str(gs.Str("%15s").F(ip)+"(x)         \r").Color("m", "U").Print("tcp " + l)
 			}
 
 		}
@@ -815,10 +812,28 @@ func (c *ClientControl) ErrRecord(eid string, i int) {
 	c.LockArea(func() {
 		c.errorid[eid] += i
 		c.ErrCount += i
+		c.errCon += 1
+	})
+}
+
+func (c *ClientControl) ErrVanish(eid string) {
+	c.LockArea(func() {
+		if c.errorid[eid] > 0 {
+			c.errorid[eid] -= 1
+		}
+		if c.ErrCount > 0 {
+			c.ErrCount -= 1
+		}
+
+		if c.RouteErrCount > 0 {
+			c.RouteErrCount -= 1
+		}
+
 	})
 }
 
 func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool, raw []byte, host string) (err error) {
+	defer socks5con.Close()
 	if gs.Str(host).StartsWith("c://") {
 		// c.SetOutFile(socks5con)
 		socks5con.Write([]byte("END Controll :" + host))
@@ -831,7 +846,8 @@ func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool,
 	var proxyType string
 	c.LogStat()
 	// for tryTime := 0; tryTime < 2; tryTime += 1 {
-	remotecon, err, eid, proxyType = c.ConnectRemote()
+	remotecon, eid, proxyType, err = c.ConnectRemote()
+	c.LogTest(raw, host, proxyType)
 	// c.LogTest(raw, host, "get con")
 	c.LogStat()
 	if err != nil {
@@ -840,12 +856,13 @@ func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool,
 		} else {
 			c.LogErr("build", err, host, eid, proxyType)
 		}
+		c.ErrRecord(eid, 1)
 		c.LockArea(func() {
-			c.RouteErrCount += 2
-			c.errorid[eid] += 2
-			c.errCon += 1
+			c.RouteErrCount += 1
 		})
-
+		if remotecon != nil {
+			remotecon.Close()
+		}
 		// continue
 		return
 	}
@@ -873,13 +890,7 @@ func (c *ClientControl) OnBodyBeforeGetRemote(socks5con net.Conn, isSocks5 bool,
 		c.LockArea(func() {
 			c.errCon += 1
 		})
-
 	}
-	// if continued && c.ErrCount < 8 {
-	// 	// continue
-	// }
-	// break
-	// }
 
 	return
 }
@@ -898,19 +909,12 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 	_buf := make([]byte, len(prosocks5.Socks5Confirm))
 	remotecon.SetReadDeadline(time.Now().Add(7 * time.Second))
 	_, err = remotecon.Read(_buf)
-	// c.LogTest(raw, host, " build")
 	if err != nil {
-		// gs.Str(err.Error()).Println("connecting read|" + host)
 		if err.Error() != "timeout" {
 			base.ErrToFile("err in client controll.go :160", err)
 		}
 
-		c.LockArea(func() {
-			c.errorid[eid] += 3
-			c.ErrCount += 3
-			c.errCon += 1
-		})
-		// gs.Str("%s : %s").F(gs.Str(host).Color("y"), gs.Str(err.Error()).Color("r")).Println(gs.Str("Err  read E/A:%d/%d ").F(c.ErrCount, c.acceptCount))
+		c.ErrRecord(eid, 1)
 
 		if host == "" {
 			if len(raw) > 9 {
@@ -925,8 +929,10 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 		} else {
 			c.LogErr("read", err, host, eid, proxyType)
 		}
-
-		continued = true
+		c.LockArea(func() {
+			c.AliveCount -= 1
+		})
+		// continued = true
 		return
 	}
 	if bytes.Equal(_buf, prosocks5.Socks5Confirm) {
@@ -934,10 +940,10 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 			_, err = socks5con.Write(_buf)
 			if err != nil {
 				c.LogErr("rely", err, host, eid, proxyType)
-				// gs.Str("%s : %s").F(gs.Str(host).Color("y"), gs.Str(err.Error()).Color("r")).Println(gs.Str("Err reply E/A:%d/%d ").F(c.ErrCount, c.acceptCount))
+
+				c.ErrRecord(eid, 1)
 				c.LockArea(func() {
-					c.errorid[eid] += 1
-					c.ErrCount += 1
+					c.AliveCount -= 1
 				})
 				remotecon.Close()
 				return continued, err
@@ -945,43 +951,20 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 		}
 	}
 
-	c.LockArea(func() {
-		c.AliveCount += 1
-		if c.ErrCount > 0 {
-			c.ErrCount -= 1
-			c.errorid[eid] -= 1
-		}
-		if c.RouteErrCount > 0 {
-			c.RouteErrCount -= 1
-		}
-		if c.acceptCount > 655300 {
-			c.acceptCount = 1
-			c.errCon = 0
-		}
+	c.ErrVanish(eid)
 
-	})
 	err = nil
-	// if host == "" {
-	// if len(raw) > 9 {
-	// switch raw[3] {
-	// case 1:
-	// ip := net.IP(raw[4 : 4+net.IPv4len]).String()
-	// port := binary.BigEndian.Uint16(raw[4+net.IPv4len : 6+net.IPv4len])
-	// c.LogConnected(proxyType, ip+":"+gs.S(port).Str())
-
-	// }
-	// }
-
-	// } else {
-	// c.LogConnected(proxyType, host)
-	// }
 	c.LogStat()
-	remotecon.SetReadDeadline(time.Now().Add(30 * time.Minute))
+	remotecon.SetReadDeadline(time.Now().Add(24 * time.Hour))
 	c.Pipe(socks5con, remotecon)
 	socks5con.Close()
 	remotecon.Close()
 	c.LockArea(func() {
 		c.AliveCount -= 1
+		if c.acceptCount > 655300 {
+			c.acceptCount = 1
+			c.errCon = 0
+		}
 	})
 
 	return
@@ -989,6 +972,21 @@ func (c *ClientControl) OnBodyDo(socks5con, remotecon net.Conn, proxyType, eid s
 
 func (c *ClientControl) LogStat() {
 	gs.S("%s %d/%d/%d\r").F(gs.Str("[status]").Color("B"), c.AliveCount, c.ErrCount, c.acceptCount).Print()
+}
+
+func (c *ClientControl) ChangeNextRoute() {
+	if c.GetNewRoute != nil {
+
+		l := c.GetNewRoute()
+		go func() {
+			gs.Str("Wait 1s then Change Route: " + l).Color("r").Println("Change")
+			time.Sleep(1 * time.Second)
+			c.ChangeRoute(l)
+		}()
+
+	} else {
+		gs.Str("no getNewRoute Function !!!!!").Color("r", "B").Println()
+	}
 }
 
 func (c *ClientControl) ChangeNewRoute() {
@@ -1019,11 +1017,7 @@ func (c *ClientControl) ChangeNewRoute() {
 				c.initProfiles = 0
 				c.errorid = make(gs.Dict[int])
 			})
-			gs.Str("Clear  ok " + c.Addr).Println("Switch Route")
-			if c.CloseDNS != nil {
-				c.CloseDNS()
-				gs.Str("Close DNS service").Println("Switch Route")
-			}
+
 			c.RouteErrCount = 0
 			c.ErrCount = 0
 			gs.Str("Close DNS Cache").Println("Switch Route")
@@ -1067,9 +1061,31 @@ func (c *ClientControl) ControllCode(host string) {
 
 }
 
+func (c *ClientControl) FixBuildSmux(errid string) {
+	for no := 0; no < len(c.SmuxClients); no++ {
+		if e := c.SmuxClients[no]; e != nil {
+			eid := e.ID()
+			if eid == errid {
+				if err, conf := c.RebuildSmux(no); err == nil {
+					gs.Str("Rebuild %d tunnel -> %s").F(no, conf.ProxyType).Color("g").Println("FixBuild")
+				}
+			}
+		}
+	}
+}
+
 func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfig) {
 	// gs.Str("b").Println("test1")
-	conf = c.GetAviableProxy()
+	switch no % 3 {
+	case 0:
+		conf = c.GetAviableProxy("quic")
+	case 1:
+		conf = c.GetAviableProxy("tls")
+	case 2:
+		conf = c.GetAviableProxy("tls")
+	default:
+		conf = c.GetAviableProxy("quic")
+	}
 
 	// gs.Str("g").Println("test2")
 	if conf == nil {
@@ -1098,44 +1114,31 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 
 	// gs.Str("--> "+conf.RemoteAddr()).Color("y", "B").Println(conf.ProxyType)
 	if singleTunnelConn != nil && conf.ProxyType != "quic" {
-		if len(c.SmuxClients) <= no {
-			c.SmuxClients = append(c.SmuxClients, prosmux.NewSmuxClient(singleTunnelConn))
-		} else {
-			if c.SmuxClients[no] != nil {
-				c.SmuxClients[no].Close()
-			}
-			cc := prosmux.NewSmuxClient(singleTunnelConn)
-			c.lock.Lock()
+
+		if c.SmuxClients[no] != nil {
+			c.SmuxClients[no].Close()
+		}
+		cc := prosmux.NewSmuxClient(singleTunnelConn, conf.ID, conf.ProxyType)
+		c.LockArea(func() {
 			c.SmuxClients[no] = nil
 			c.SmuxClients[no] = cc
-			c.lock.Unlock()
+		})
 
-		}
 	} else if conf.ProxyType == "quic" {
-		// gs.Str("test Enter be").Println(conf.ProxyType)
-		if len(c.SmuxClients) <= no {
 
-			qc, err := proquic.NewQuicClient(conf)
-			if err != nil {
-
-				return errors.New("[quic-rebuild] " + err.Error() + conf.RemoteAddr()), conf
-			}
-			c.SmuxClients = append(c.SmuxClients, qc)
-		} else {
-
-			if c.SmuxClients[no] != nil {
-				c.SmuxClients[no].Close()
-			}
-			qc, err := proquic.NewQuicClient(conf)
-			if err != nil {
-				return errors.New("[quic-rebuild] " + err.Error() + conf.RemoteAddr()), conf
-			}
-			c.lock.Lock()
+		if c.SmuxClients[no] != nil {
+			c.SmuxClients[no].Close()
+		}
+		qc, err := proquic.NewQuicClient(conf)
+		if err != nil {
+			return errors.New("[quic-rebuild] " + err.Error() + conf.RemoteAddr()), conf
+		}
+		c.LockArea(func() {
 			c.SmuxClients[no] = nil
 			c.SmuxClients[no] = qc
-			c.lock.Unlock()
 
-		}
+		})
+
 	} else {
 		if err == nil {
 			err = errors.New("tls/kcp only :  now method is :" + conf.ProxyType)
@@ -1146,12 +1149,13 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 }
 
 func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType string) {
-	c.lock.Lock()
-	c.lastUse += 1
-	c.lastUse = c.lastUse % c.ClientNum
-	c.lock.Unlock()
+	gs.Str("before get id").Color("y").Println(id)
+	c.LockArea(func() {
+		c.lastUse += 1
+		c.lastUse = c.lastUse % c.ClientNum
+	})
 	var _c *base.ProtocolConfig
-
+	gs.Str("before get session").Color("y", "U").Println(id)
 	e := c.SmuxClients[c.lastUse]
 	if e == nil {
 		for _i := 0; _i < 2; _i++ {
@@ -1167,9 +1171,11 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 			}
 		}
 		if err != nil {
+			gs.Str("before get connection").Color("r").Println(id)
 			return nil, err, id, proxyType
 		}
 	}
+	gs.Str("before get connection").Color("c").Println(id)
 	if e != nil && e.IsClosed() {
 		err, _c = c.RebuildSmux(c.lastUse)
 		if _c != nil {
@@ -1177,14 +1183,21 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 			proxyType = _c.ProxyType
 		}
 		if err != nil {
+			gs.Str("err before create new connection").Color("r").Println(id)
 			return nil, errors.New(err.Error() + " in rebuild "), id, proxyType
 		}
+		gs.Str("before create new connection").Color("c", "U").Println(id)
 		con, err = e.NewConnnect()
+		gs.Str("create new connection").Color("c", "B").Println(id)
 	} else {
 		if e != nil {
+			proxyType = e.GetProxyType()
+			gs.Str("before create new connection").Color("c", "U").Println(id)
 			con, err = e.NewConnnect()
+			gs.Str("create new connection").Color("c", "B").Println(id)
 			return
 		} else {
+			gs.Str("err create new connection").Color("r").Println(id)
 			return nil, errors.New("no session create!!"), id, proxyType
 		}
 
@@ -1218,9 +1231,9 @@ func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, statu
 			case "tls":
 				msgs[channelID] = gs.Str('*').Color("g", "B")
 			case "kcp":
-				msgs[channelID] = gs.Str('*').Color("b", "B")
+				msgs[channelID] = gs.Str('*').Color("y", "B")
 			case "quic":
-				msgs[channelID] = gs.Str('*').Color("c", "B")
+				msgs[channelID] = gs.Str('*').Color("m", "B")
 			default:
 				msgs[channelID] = gs.Str('*').Color("g", "B")
 			}
@@ -1263,6 +1276,7 @@ func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait *sync.Wait
 func (c *ClientControl) InitializationTunnels() (use bool) {
 	wait := sync.WaitGroup{}
 	var errnum = 0
+
 	for i := 0; i < c.ClientNum; i++ {
 		wait.Add(1)
 		time.Sleep(50 * time.Millisecond)
@@ -1298,7 +1312,7 @@ func (c *ClientControl) LogErr(label string, err error, host, eid, proxyType str
 	gs.Str("%s %s").F(gs.Str("[%s] %s health:%.2f%% %s ").F(label, eid, health, proxyType).Color("w", "B"), gs.Str(err.Error()).Color("r")).Add("\n").Print()
 }
 
-func (c *ClientControl) ConnectRemote() (con net.Conn, err error, id, proxyType string) {
+func (c *ClientControl) ConnectRemote() (con net.Conn, id, proxyType string, err error) {
 
 	// connted := false
 
@@ -1320,14 +1334,10 @@ func Pipe(p1, p2 net.Conn) {
 	// var wait int = 1800
 	wg.Add(1)
 	streamCopy := func(dst net.Conn, src net.Conn, fr, to net.Addr) {
-		// startAt := time.Now()
-		// Copy(dst, src, wait)
-		buf := make([]byte, 8092)
-		// io.CopyBuffer(dst, src, buf)
+		buf := make([]byte, 4096)
 		copyBuffer(dst, src, buf, 1800)
 		p1.Close()
 		p2.Close()
-		// }()
 	}
 
 	go func(p1, p2 net.Conn) {

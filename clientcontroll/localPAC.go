@@ -28,6 +28,7 @@ func (c *ClientControl) regionFilter(comcon net.Conn, raw []byte, h string) bool
 }
 
 func (c *ClientControl) tcppipe(comcon net.Conn, host gs.Str) {
+	defer comcon.Close()
 	con, err := net.Dial("tcp", host.Str())
 	if err != nil {
 		gs.Str("%s conneting err ").F(host + "-" + gs.Str(prodns.SearchIP(host.Str()))).Color("r").Println("CN")
@@ -39,6 +40,8 @@ func (c *ClientControl) tcppipe(comcon net.Conn, host gs.Str) {
 		gs.Str("%s reply socks5 err ").F(host).Color("r").Println("CN")
 		return
 	}
+	defer con.Close()
+
 	host.Color("b").Println("LOCAL")
 	c.Pipe(comcon, con)
 }
