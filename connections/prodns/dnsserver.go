@@ -33,7 +33,6 @@ func GetDNSServer(lport int, cons ConnecitonHandler, before func()) DNSServerHan
 		cons:     cons,
 		IsServer: false,
 	}
-
 	return srv
 }
 
