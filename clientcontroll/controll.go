@@ -736,6 +736,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				err := prosocks5.Socks5HandShake(&socks5con)
 				if err != nil {
 					gs.Str(err.Error()).Println("socks5 handshake")
+					c.AliveCount -= 1
 					return
 				}
 
@@ -751,11 +752,13 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 					if prodns.IsLocal(ip) {
 						port := binary.BigEndian.Uint16(raw[8:10])
 						c.tcppipe(socks5con, gs.Str(ip+":%d").F(port))
+						c.AliveCount -= 1
 						return
 					} else if ip == "99.254.254.254" {
 
 						gs.Str("==== Config me ====").Color("b").Println("Config")
 						c.RedirectConfig(socks5con)
+						c.AliveCount -= 1
 						return
 					}
 
@@ -812,6 +815,9 @@ func (c *ClientControl) ErrRecord(eid string, i int) {
 	c.LockArea(func() {
 		c.errorid[eid] += i
 		c.ErrCount += i
+		if i > 1 {
+			c.RouteErrCount += 1
+		}
 		c.errCon += 1
 	})
 }
@@ -1148,14 +1154,20 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 	return nil, conf
 }
 
-func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType string) {
-	gs.Str("before get id").Color("y").Println(id)
+func (c *ClientControl) GetSession(debug bool) (con net.Conn, err error, id, proxyType string) {
+	if debug {
+		gs.Str("before get id").Color("y").Println(id)
+	}
+
 	c.LockArea(func() {
 		c.lastUse += 1
 		c.lastUse = c.lastUse % c.ClientNum
 	})
 	var _c *base.ProtocolConfig
-	gs.Str("before get session").Color("y", "U").Println(id)
+	if debug {
+		gs.Str("before get session").Color("y", "U").Println(id)
+	}
+
 	e := c.SmuxClients[c.lastUse]
 	if e == nil {
 		for _i := 0; _i < 2; _i++ {
@@ -1167,15 +1179,26 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 
 			e = c.SmuxClients[c.lastUse]
 			if err == nil {
+				if e != nil {
+					id = e.ID()
+				}
+
 				break
 			}
 		}
 		if err != nil {
+
 			gs.Str("before get connection").Color("r").Println(id)
 			return nil, err, id, proxyType
 		}
 	}
-	gs.Str("before get connection").Color("c").Println(id)
+	if e != nil && e.ID() != "" {
+		id = e.ID()
+	}
+	if debug {
+		gs.Str("before get connection").Color("c").Println(id)
+	}
+
 	if e != nil && e.IsClosed() {
 		err, _c = c.RebuildSmux(c.lastUse)
 		if _c != nil {
@@ -1186,15 +1209,26 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 			gs.Str("err before create new connection").Color("r").Println(id)
 			return nil, errors.New(err.Error() + " in rebuild "), id, proxyType
 		}
-		gs.Str("before create new connection").Color("c", "U").Println(id)
+		if debug {
+			gs.Str("before create new connection").Color("c", "U").Println(id)
+		}
+
 		con, err = e.NewConnnect()
-		gs.Str("create new connection").Color("c", "B").Println(id)
+		if debug {
+			gs.Str("create new connection").Color("c", "B").Println(id)
+		}
+
 	} else {
 		if e != nil {
 			proxyType = e.GetProxyType()
-			gs.Str("before create new connection").Color("c", "U").Println(id)
+			if debug {
+				gs.Str("before create new connection").Color("c", "U").Println(id)
+			}
 			con, err = e.NewConnnect()
-			gs.Str("create new connection").Color("c", "B").Println(id)
+			if debug {
+				gs.Str("create new connection").Color("c", "B").Println(id)
+			}
+
 			return
 		} else {
 			gs.Str("err create new connection").Color("r").Println(id)
@@ -1316,10 +1350,13 @@ func (c *ClientControl) ConnectRemote() (con net.Conn, id, proxyType string, err
 
 	// connted := false
 
-	con, err, id, proxyType = c.GetSession()
+	con, err, id, proxyType = c.GetSession(false)
 	if err != nil {
 		// gs.Str("rebuild smux").Println("connect remote")
-		con, err, id, proxyType = c.GetSession()
+		con, err, id, proxyType = c.GetSession(true)
+		if err != nil {
+			c.ErrRecord(id, 2)
+		}
 	}
 	// gs.Str("smxu connect ").Println()
 	return
