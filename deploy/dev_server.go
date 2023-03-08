@@ -255,12 +255,15 @@ func (o *Onevps) Test() time.Duration {
 	// l := sync.RWMutex{}
 	// var l time.Duration = 0
 	var ids gs.List[string]
+
 	l, ids := servercontroll.TestServer(o.Host)
+	// gs.Str("Test Connect:" + l.String()).Println(o.Host)
 	ol := l
 	ol += servercontroll.TestHost(o.Host)
 	ol /= 2
+	// gs.Str("Test Web:" + ol.String()).Println(o.Host)
 	// s.Wait()
-	o.ConnectedQuality = time.Duration(ol)
+	o.ConnectedQuality = ol
 	o.IDS = ids.Count()
 	o.Speed = o.ConnectedQuality.String()
 	return o.ConnectedQuality

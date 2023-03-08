@@ -65,12 +65,13 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 					return
 				}
 			}
-
-			if this.ResolveRemoteOld(w, msg) {
-				this.lock.Lock()
-				this.queryWait -= 1
-				this.lock.Unlock()
-				return
+			for i := 0; i < 3; i++ {
+				if this.ResolveRemoteOld(w, msg) {
+					this.lock.Lock()
+					this.queryWait -= 1
+					this.lock.Unlock()
+					return
+				}
 			}
 
 			// if this.ResolveTest(w, msg) {

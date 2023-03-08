@@ -65,10 +65,10 @@ func TestServer(server string) (t time.Duration, IDS gs.List[string]) {
 		})
 	} else {
 		gs.Str("err:" + err.Error()).Color("r").Println("TestServer")
-		return time.Duration(30000) * time.Hour, IDS
+		return time.Duration(30000) * time.Millisecond, IDS
 	}
 	if !ok {
-		return time.Duration(30000) * time.Hour, IDS
+		return time.Duration(30000) * time.Millisecond, IDS
 	}
 	return time.Since(st), IDS
 }
@@ -114,7 +114,7 @@ func GetProxyConfig(host, tp string) *base.ProtocolConfig {
 		host += ":55443"
 	}
 	server := gs.Str(host).Split("/")[1].Split(":")[0]
-	reply, err := HTTPSPost(host+"/proxy-get", data)
+	reply, err := HTTPSPost(host+"/proxy-get", data, 10)
 	if err != nil {
 		gs.Str(err.Error()).Color("r").Println()
 		return nil
@@ -208,15 +208,16 @@ func TestHost(host string) time.Duration {
 			}
 			config := GetProxyConfig(host, tp)
 			if config == nil {
-				tim = tim.Add((30 * time.Minute))
+				tim = tim.Add((3000 * time.Millisecond))
 				return
 			}
 			st := time.Now()
 			con, err := GetConn(config)
 			if err != nil {
-				tim = tim.Add((30 * time.Minute))
+				tim = tim.Add((3000 * time.Millisecond))
 				return
 			}
+			con.SetReadDeadline(time.Now().Add(7 * time.Second))
 			defer con.Close()
 
 			data := prosocks5.HostToRaw(domain, 443)
@@ -224,10 +225,10 @@ func TestHost(host string) time.Duration {
 			re := make([]byte, 200)
 			if n, err := con.Read(re); err == nil {
 				if bytes.Equal(re[:n], prosocks5.Socks5Confirm) {
-					tim = tim.Add(time.Now().Sub(st))
+					tim = tim.Add(time.Since(st))
 				}
 			} else {
-				tim = tim.Add((1 * time.Hour))
+				tim = tim.Add((3000 * time.Millisecond))
 				return
 			}
 		}(&wait)
@@ -237,6 +238,6 @@ func TestHost(host string) time.Duration {
 	tim.Every(func(no int, i time.Duration) {
 		c += i
 	})
-	c /= time.Duration((tim.Count()))
-	return c
+
+	return c / 3
 }
