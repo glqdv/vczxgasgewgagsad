@@ -1285,9 +1285,10 @@ func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, statu
 
 }
 
-func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait *sync.WaitGroup) {
-
-	defer wait.Done()
+func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait ...*sync.WaitGroup) {
+	if wait != nil {
+		defer wait[0].Done()
+	}
 
 	c.ShowChannelStatus(channelID, "Unknow", 0)
 
@@ -1319,16 +1320,19 @@ func (c *ClientControl) InitializationTunnels() (use bool) {
 	var errnum = 0
 
 	for i := 0; i < c.ClientNum; i++ {
-		wait.Add(1)
 		time.Sleep(50 * time.Millisecond)
-		go c.BuildChannel(i, &errnum, &wait)
+		if i < 10 {
+			wait.Add(1)
+			go c.BuildChannel(i, &errnum, &wait)
+		} else {
+			go c.BuildChannel(i, &errnum)
+		}
 	}
-
 	wait.Wait()
 	time.Sleep(1 * time.Second)
 	c.inited = true
 	use = true
-	if errnum > c.confNum/2 {
+	if errnum > 5 {
 		c.SetRouteLoc("this is break, try next !!!")
 		use = false
 	} else {
