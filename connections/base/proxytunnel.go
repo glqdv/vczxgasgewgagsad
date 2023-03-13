@@ -11,7 +11,6 @@ import (
 	"gitee.com/dark.H/ProxyZ/connections/prodns"
 	"gitee.com/dark.H/ProxyZ/connections/prosmux"
 	"gitee.com/dark.H/ProxyZ/connections/prosocks5"
-	"gitee.com/dark.H/ProxyZ/vpn"
 	"gitee.com/dark.H/gs"
 )
 
@@ -20,18 +19,19 @@ type Protocol interface {
 	GetConfig() *ProtocolConfig
 	AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error)
 	TryClose()
+	GetAliveIPS() gs.List[string]
 	DelCon(con net.Conn)
 }
 
 type ProxyTunnel struct {
-	cons         gs.List[net.Conn]
-	alive        int
-	lock         sync.RWMutex
-	protocl      Protocol
-	UseSmux      bool
-	On           bool
-	ZeroToDel    bool
-	vpnHandler   *vpn.VPNHandler
+	cons      gs.List[net.Conn]
+	alive     int
+	lock      sync.RWMutex
+	protocl   Protocol
+	UseSmux   bool
+	On        bool
+	ZeroToDel bool
+	// vpnHandler   *vpn.VPNHandler
 	ControllFunc func(rawHost string, con net.Conn) (err error)
 }
 
@@ -93,22 +93,22 @@ func (pt *ProxyTunnel) Server(after func()) (err error) {
 	return
 }
 
-func (pt *ProxyTunnel) SetVPN(v *vpn.VPNHandler) {
-	pt.vpnHandler = v
-}
+// func (pt *ProxyTunnel) SetVPN(v *vpn.VPNHandler) {
+// 	pt.vpnHandler = v
+// }
 
-func (pt *ProxyTunnel) ClearVPN() {
-	if pt.vpnHandler != nil {
-		pt.vpnHandler.CloseVPN()
-	}
-	pt.vpnHandler = nil
-}
+// func (pt *ProxyTunnel) ClearVPN() {
+// 	if pt.vpnHandler != nil {
+// 		pt.vpnHandler.CloseVPN()
+// 	}
+// 	pt.vpnHandler = nil
+// }
 
 func (pt *ProxyTunnel) SetWaitToClose() {
 	pt.protocl.TryClose()
-	if pt.vpnHandler != nil {
-		pt.vpnHandler.CloseVPN()
-	}
+	// if pt.vpnHandler != nil {
+	// 	pt.vpnHandler.CloseVPN()
+	// }
 }
 
 func (pt *ProxyTunnel) SetProtocol(procol Protocol) {
@@ -123,26 +123,31 @@ func (pt *ProxyTunnel) GetConfig() *ProtocolConfig {
 	return pt.protocl.GetConfig()
 }
 
+func (pt *ProxyTunnel) DelCon(con net.Conn) {
+	pt.protocl.DelCon(con)
+}
+
 func (pt *ProxyTunnel) SetControllFunc(l func(rawHost string, con net.Conn) (err error)) {
 	pt.ControllFunc = l
 }
 
-func (pt *ProxyTunnel) HandleConnTun(con net.Conn) {
-	defer con.Close()
-	pt.PipeReadWriteCloser(con, pt.vpnHandler)
-}
+// func (pt *ProxyTunnel) HandleConnTun(con net.Conn) {
+// 	defer con.Close()
+// 	pt.PipeReadWriteCloser(con, pt.vpnHandler)
+// }
 
 func (pt *ProxyTunnel) HandleConnAsync(con net.Conn) {
-	if pt.vpnHandler != nil {
-		pt.HandleConnTun(con)
-		return
-	}
+	// if pt.vpnHandler != nil {
+	// 	pt.HandleConnTun(con)
+	// 	return
+	// }
 
 	host, _, _, err := prosocks5.GetServerRequest(con)
 	if err != nil {
 		gs.Str(err.Error()).Println("GetServerRequest | err")
 		ErrToFile("Server HandleConnection", err)
-		con.Close()
+		// con.Close()
+		pt.DelCon(con)
 		return
 	} else {
 		// gs.Str(host).Println("host|ready")
@@ -171,12 +176,16 @@ func (pt *ProxyTunnel) HandleConnAsync(con net.Conn) {
 	}
 }
 
-func (pt *ProxyTunnel) GetConnectNum() int {
+func (pt *ProxyTunnel) GetClientNum() int {
 	return pt.alive
 }
 
+func (pt *ProxyTunnel) GetClientIP() gs.List[string] {
+	return pt.protocl.GetAliveIPS()
+}
+
 func (pt *ProxyTunnel) DnsNormal(host string, con net.Conn) (err error) {
-	defer con.Close()
+	defer pt.DelCon(con)
 
 	// c.SingleInflight = true
 	// laddr := net.UDPAddr{
@@ -208,6 +217,7 @@ func (pt *ProxyTunnel) DnsNormal(host string, con net.Conn) (err error) {
 }
 
 func (pt *ProxyTunnel) TcpNormal(host string, con net.Conn) (err error) {
+	defer pt.DelCon(con)
 	remoteConn, err := net.Dial("tcp", host)
 	if err != nil {
 		if ne, ok := err.(*net.OpError); ok && (ne.Err == syscall.EMFILE || ne.Err == syscall.ENFILE) {
@@ -227,6 +237,7 @@ func (pt *ProxyTunnel) TcpNormal(host string, con net.Conn) (err error) {
 	if err != nil {
 		ErrToFile("back con is break", err)
 		remoteConn.Close()
+		return
 	}
 	gs.Str(host).Println("host|build")
 	pt.Pipe(remoteConn, con)

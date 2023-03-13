@@ -11,7 +11,6 @@ import (
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
 	"gitee.com/dark.H/ProxyZ/update"
-	"gitee.com/dark.H/ProxyZ/vpn"
 	"gitee.com/dark.H/gs"
 )
 
@@ -82,22 +81,7 @@ func setupHandler(www string) http.Handler {
 		if name, ok := d["name"]; ok {
 			if val, ok := d["val"]; ok {
 				gs.Str(val.(string)).Color("g", "B").Println(name.(string))
-				switch name.(string) {
-				case "vpn":
-					switch val.(string) {
-					case "on", "start", "Start":
-						vpnHandler := vpn.NewVPNHandlerServer()
-						vpnHandler.Init()
-						Tunnels.Every(func(no int, i *base.ProxyTunnel) {
-							i.SetVPN(vpnHandler)
-						})
-					case "off", "clear", "stop", "kill":
-						Tunnels.Every(func(no int, i *base.ProxyTunnel) {
-							i.ClearVPN()
-						})
 
-					}
-				}
 				Reply(w, "Good ", true)
 				return
 
@@ -119,16 +103,23 @@ func setupHandler(www string) http.Handler {
 			"kcp":  0,
 		}
 
+		clients := gs.List[string]{}
 		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
 			proxy[i.GetConfig().ProxyType] += 1
-			aliveProxy[i.GetConfig().ProxyType] += i.GetConnectNum()
+			aliveProxy[i.GetConfig().ProxyType] += i.GetClientNum()
+			i.GetClientIP().Every(func(no int, ip string) {
+				if !clients.In(ip) {
+					clients = clients.Add(ip)
+				}
+			})
 			ids = append(ids, i.GetConfig().ID)
 		})
 		Reply(w, gs.Dict[any]{
-			"ids":   ids,
-			"alive": aliveProxy,
-			"proxy": proxy,
-			"err":   ErrTypeCount,
+			"ids":    ids,
+			"alive":  aliveProxy,
+			"client": clients,
+			"proxy":  proxy,
+			"err":    ErrTypeCount,
 		}, true)
 	})
 

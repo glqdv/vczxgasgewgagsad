@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"net"
+	"sync"
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/connections/base"
@@ -61,6 +62,8 @@ type KcpServer struct {
 	// TcpListenPorts map[string]int
 	AcceptConn int
 	ZeroToDel  bool
+	ips        gs.Dict[bool]
+	lock       sync.RWMutex
 	// RedirectBook  *utils.Config
 }
 
@@ -84,6 +87,7 @@ func (ksever *KcpServer) Accept() (con net.Conn, err error) {
 
 func (kserver *KcpServer) DelCon(con net.Conn) {
 	con.Close()
+	kserver.DelRecord(con)
 	kserver.AcceptConn -= 1
 }
 
@@ -144,6 +148,7 @@ func (kcpServer *KcpServer) AcceptHandle(waitTime time.Duration, handle func(con
 			listener.Close()
 			return err
 		}
+		kcpServer.Record(con.RemoteAddr())
 		go handle(con)
 	}
 	// return
@@ -151,4 +156,37 @@ func (kcpServer *KcpServer) AcceptHandle(waitTime time.Duration, handle func(con
 
 func (kcpServer *KcpServer) TryClose() {
 	kcpServer.ZeroToDel = true
+}
+
+func (kcpserver *KcpServer) Record(con net.Addr) {
+	ip := con.String()
+	if kcpserver.ips == nil {
+		kcpserver.ips = make(gs.Dict[bool])
+	}
+	if _, ok := kcpserver.ips[ip]; !ok {
+		kcpserver.lock.Lock()
+		kcpserver.ips[ip] = true
+		kcpserver.lock.Unlock()
+	}
+}
+
+func (kcpserver *KcpServer) DelRecord(con net.Conn) {
+	if kcpserver.ips == nil {
+		kcpserver.ips = make(gs.Dict[bool])
+	}
+	ip := con.RemoteAddr().String()
+	if _, ok := kcpserver.ips[ip]; !ok {
+		kcpserver.lock.Lock()
+		delete(kcpserver.ips, ip)
+		kcpserver.lock.Unlock()
+	}
+
+}
+
+func (kcpserver *KcpServer) GetAliveIPS() gs.List[string] {
+	ds := gs.List[string]{}
+	for k := range kcpserver.ips {
+		ds = append(ds, k)
+	}
+	return ds
 }
