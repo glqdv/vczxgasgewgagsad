@@ -282,6 +282,7 @@ func localSetupHandler() http.Handler {
 			gs.Str("Start pull all routes ").Println("init")
 			if vpss := GitGetAccount("https://"+string(gs.Str("55594657571e515d5f1f5653405b1c7a1d53541c555946").Derypt("2022")), user, pwd); vpss.Count() > 0 {
 				globalClient.Routes = vpss
+				SetRoutes(vpss)
 				if vpss.Count() > 0 {
 					gs.Dict[any]{
 						"msg": vpss,
@@ -305,11 +306,12 @@ func localSetupHandler() http.Handler {
 				}
 				d.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
 				gs.Str("start test route").Println("login")
+
 				go TestRoutes(globalClient.Routes)
 				if useLast {
 					gs.Str("use last login :" + last).Println("login")
 					if globalClient.ClientConf == nil {
-						globalClient.ClientConf = clientcontroll.NewClientControll(last, LOCAL_PORT)
+						globalClient.ClientConf = clientcontroll.NewClientControll(last, LOCAL_PORT, 70)
 						// globalClient.ClientConf
 						globalClient.ClientConf.SetChangeRoute(func() string {
 							var it *Onevps
@@ -344,7 +346,23 @@ func localSetupHandler() http.Handler {
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
-						go globalClient.ClientConf.Socks5Listen()
+						go func() {
+							if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
+								for {
+
+									gs.Str("init failed pulling next route ... ").Color("y").Println("Fix")
+									newloc := GetNewRoute()
+									globalClient.ClientConf.TryClose()
+									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+									globalClient.ClientConf.ChangeRoute(newloc)
+									break
+								}
+							} else {
+								gs.Str("err: " + err.Error()).Color("b").Println("Fix")
+
+							}
+
+						}()
 
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
@@ -536,7 +554,7 @@ func localSetupHandler() http.Handler {
 				if host, ok := d["host"]; ok && host != nil {
 					gs.Str(host.(string)).Color("g", "B").Println("Swtich")
 					if globalClient.ClientConf == nil {
-						globalClient.ClientConf = clientcontroll.NewClientControll(host.(string), LOCAL_PORT)
+						globalClient.ClientConf = clientcontroll.NewClientControll(host.(string), LOCAL_PORT, 70)
 						// globalClient.ClientConf
 						last = host.(string)
 						gs.Dict[any]{
@@ -553,8 +571,21 @@ func localSetupHandler() http.Handler {
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
+						go func() {
+							for {
+								if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
+									gs.Str("init failed pulling next route ... ").Color("y").Println("Fix")
+									newloc := GetNewRoute()
+									globalClient.ClientConf.TryClose()
+									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+									globalClient.ClientConf.ChangeRoute(newloc)
+								} else {
+									// gs.Str("init  ").Color("b").Println("Fix")
+									break
+								}
+							}
+						}()
 
-						go globalClient.ClientConf.Socks5Listen()
 					} else {
 						gs.Str("Close Old!").Color("g", "B").Println("Swtich")
 						globalClient.ClientConf.TryClose()
@@ -588,9 +619,22 @@ func localSetupHandler() http.Handler {
 					} else {
 
 						nowhost = string(globalClient.Routes[0].Host)
-						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT)
+						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT, 70)
 
-						go globalClient.ClientConf.Socks5Listen()
+						go func() {
+							for {
+								if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
+									newloc := GetNewRoute()
+									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+									globalClient.ClientConf.TryClose()
+									globalClient.ClientConf.ChangeRoute(newloc)
+								} else {
+									gs.Str("init  ").Color("b").Println("Fix")
+									break
+								}
+							}
+
+						}()
 						gs.Dict[any]{
 							"name":     user,
 							"password": pwd,

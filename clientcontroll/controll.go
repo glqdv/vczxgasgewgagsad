@@ -56,7 +56,7 @@ var (
 	}
 )
 
-func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
+func RunLocal(server string, l int, channelNum int, startDNS, startHTTPProxy bool) {
 
 	if r, _ := servercontroll.TestServer(server); r > 5*time.Minute {
 		gs.Str("Test Failed").Println()
@@ -66,12 +66,13 @@ func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 		gs.Str("server build time: %s ").F(r).Println("test")
 	}
 
-	cli := NewClientControll(server, l)
+	cli := NewClientControll(server, l, channelNum)
 	if startHTTPProxy {
 		go cli.HttpListen()
 	}
 
 	cli.Socks5Listen()
+	gs.Str("run normal local ").Println()
 
 }
 
@@ -121,19 +122,19 @@ type ClientControl struct {
 	statusSignal   gs.Strs
 }
 
-func NewClientControll(addr string, listenport int) *ClientControl {
+func NewClientControll(addr string, listenport int, channelNum int) *ClientControl {
 	addr = Wrap(addr)
 	gs.Str("New Client Controll:" + addr).Println()
 	c := &ClientControl{
 		Addr:           gs.Str(addr),
 		ListenPort:     listenport,
-		ClientNum:      70,
+		ClientNum:      channelNum,
 		DnsServicePort: 60053,
 		lastUse:        -1,
-		confNum:        10,
+		confNum:        channelNum,
 		errorid:        make(gs.Dict[int]),
 		ReportingMark:  make(gs.Dict[bool]),
-		proxyProfiles:  make(chan *base.ProtocolConfig, 70),
+		proxyProfiles:  make(chan *base.ProtocolConfig, channelNum),
 	}
 	for i := 0; i < c.ClientNum; i++ {
 		c.SmuxClients = append(c.SmuxClients, nil)
@@ -150,7 +151,7 @@ func (c *ClientControl) Init() {
 		}
 		gs.Str("Clar Proxy Profiles ").Println("Init")
 	}
-	c.proxyProfiles = make(chan *base.ProtocolConfig, 10)
+	c.proxyProfiles = make(chan *base.ProtocolConfig, c.confNum)
 	c.initProfiles = 0
 	c.errorid = make(gs.Dict[int])
 	c.ErrCount = 0
@@ -163,7 +164,9 @@ func (c *ClientControl) Init() {
 }
 
 func RecvMsg(reply gs.Str) (di any, o bool) {
-	d := reply.Json()
+	d := gs.Dict[any]{}
+	json.Unmarshal([]byte(reply), &d)
+	// d := reply.Json()
 	if c, ok := d["status"]; ok {
 		if c.(string) == "ok" {
 			o = true
@@ -246,6 +249,7 @@ func (c *ClientControl) ChangeRoute(host string) bool {
 	}
 	for {
 		time.Sleep(1 * time.Second)
+		gs.Str("wait closed .... ").Println()
 		if c.closed {
 			break
 		}
@@ -624,6 +628,7 @@ func (c *ClientControl) DNSListen() {
 
 			gs.Str("Wait Initialization finish .....").Color("g").Println()
 			for !c.inited {
+				gs.Str("Waiting .....").Color("g").Println()
 				time.Sleep(1 * time.Second)
 			}
 			prodns.SetDNSAddr(c.Addr.Str())
@@ -658,13 +663,14 @@ func (c *ClientControl) HttpListen() (err error) {
 CORE ！！！！！！！！
 */
 func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
-
+	c.closed = true
 	if inied != nil && inied[0] {
 
 	} else {
 		if !c.InitializationTunnels() {
 			c.IsRunning = false
 			c.IsBreak = true
+			gs.Str("Broken route need next").Println()
 			return ErrRouteISBreak
 		}
 	}

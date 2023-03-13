@@ -33,6 +33,7 @@ func main() {
 	global := false
 	build := false
 	switch_route := false
+	channelNum := 70
 	// cli := false
 	// configbuild := false
 
@@ -47,6 +48,7 @@ func main() {
 	flag.BoolVar(&noopenbrowser, "no-open", false, "true not open browser")
 	flag.BoolVar(&daemon, "d", false, "true to run deamon")
 	flag.BoolVar(&log, "log", false, "true to get log")
+	flag.IntVar(&channelNum, "channel", 70, "true to get log")
 	flag.BoolVar(&build, "install", false, "true to install")
 	flag.BoolVar(&global, "global", false, "true to set system proxy")
 	flag.BoolVar(&switch_route, "switch", false, "true to switch route")
@@ -104,7 +106,7 @@ func main() {
 		if global {
 			deploy.SetGlobalMode(deploy.LOCAL_PORT)
 		}
-		clientcontroll.RunLocal(server, deploy.LOCAL_PORT, true, true)
+		clientcontroll.RunLocal(server, deploy.LOCAL_PORT, channelNum, true, true)
 		os.Exit(0)
 	}
 
@@ -126,7 +128,7 @@ func main() {
 		if global {
 			deploy.SetGlobalMode(deploy.LOCAL_PORT)
 		}
-		clientcontroll.RunLocal(server, deploy.LOCAL_PORT, true, true)
+		clientcontroll.RunLocal(server, deploy.LOCAL_PORT, channelNum, true, true)
 		os.Exit(0)
 	}
 	if log {

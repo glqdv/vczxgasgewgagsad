@@ -578,6 +578,14 @@ func RouteModeInit(gitrepo string, namepwd ...string) {
 	}()
 }
 
+func SetRoutes(ss gs.List[*Onevps]) {
+	waitlock.Lock()
+	ss.Every(func(no int, i *Onevps) {
+		cacheRoutes = cacheRoutes.Add(i)
+	})
+	waitlock.Unlock()
+}
+
 func GetNewRoute() string {
 	gs.Str("wait testing").Print()
 	if cacheRoutes.Count() > 0 {
@@ -619,8 +627,9 @@ func QuietStdout(do func(e string)) {
 func RunLocalRouterMode(repo, name, pwd string, l int) {
 	RouteModeInit(repo, name, pwd)
 	server := GetNewRoute()
-	cli := clientcontroll.NewClientControll(server, l)
+	cli := clientcontroll.NewClientControll(server, l, 100)
 	cli.GetNewRoute = GetNewRoute
 	cli.Socks5Listen()
+	gs.Str("Run local router").Println()
 
 }
