@@ -354,7 +354,14 @@ func localSetupHandler() http.Handler {
 									newloc := GetNewRoute()
 									globalClient.ClientConf.TryClose()
 									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+									gs.Dict[any]{
+										"name":     user,
+										"password": pwd,
+										"last":     newloc,
+										"proxy":    proxy,
+									}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
 									globalClient.ClientConf.ChangeRoute(newloc)
+
 									break
 								}
 							} else {

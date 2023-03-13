@@ -1273,7 +1273,7 @@ func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, statu
 			case "kcp":
 				msgs[channelID] = gs.Str('*').Color("y", "B")
 			case "quic":
-				msgs[channelID] = gs.Str('*').Color("m", "B")
+				msgs[channelID] = gs.Str('*').Color("c", "B")
 			default:
 				msgs[channelID] = gs.Str('*').Color("g", "B")
 			}
