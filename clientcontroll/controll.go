@@ -127,13 +127,13 @@ func NewClientControll(addr string, listenport int) *ClientControl {
 	c := &ClientControl{
 		Addr:           gs.Str(addr),
 		ListenPort:     listenport,
-		ClientNum:      100,
+		ClientNum:      70,
 		DnsServicePort: 60053,
 		lastUse:        -1,
 		confNum:        10,
 		errorid:        make(gs.Dict[int]),
 		ReportingMark:  make(gs.Dict[bool]),
-		proxyProfiles:  make(chan *base.ProtocolConfig, 10),
+		proxyProfiles:  make(chan *base.ProtocolConfig, 70),
 	}
 	for i := 0; i < c.ClientNum; i++ {
 		c.SmuxClients = append(c.SmuxClients, nil)
@@ -529,9 +529,9 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		}
 	}
 	var err error
-	for _i := 0; _i < 5; _i++ {
+	for _i := 0; _i < 2; _i++ {
 
-		reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data, 10)
+		reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data, 5)
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
@@ -1288,6 +1288,7 @@ func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait *sync.Wait
 	err, conf := c.RebuildSmux(channelID)
 	if err == ErrRouteISBreak {
 		*errnum += 1
+		// return
 	}
 
 	pt := "unknow"
