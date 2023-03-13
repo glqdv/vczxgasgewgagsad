@@ -1,6 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-gitee.com/dark.H/gn v0.0.6 h1:650Yo6Qey78AFx4olv9MrE6BQPL71/CgCSTJaVSxMpE=
-gitee.com/dark.H/gn v0.0.6/go.mod h1:IsGUFGrZZRRFXq83RuwN2gAWegNEGMHL1RLGSYWDtAw=
+gitee.com/dark.H/gn v0.0.7 h1:IXUTgjq8vOD13pFkByhI8fcxg8paDUCOGCT2byeJIwM=
+gitee.com/dark.H/gn v0.0.7/go.mod h1:IsGUFGrZZRRFXq83RuwN2gAWegNEGMHL1RLGSYWDtAw=
 gitee.com/dark.H/gs v1.0.0 h1:u6/w5CdGT8QdYtWAgBeB12nMa7IBb3DgkRksgGQiwu8=
 gitee.com/dark.H/gs v1.0.0/go.mod h1:dIt8jvV45RKxWHQht2cECafg79Vd1w2c25/JJ0Qx6M0=
 gitee.com/dark.H/gt v0.1.0 h1:jDYuH6xFQ2pGxeI5ooxCExt17yySchsfdxhOY+9WyzA=

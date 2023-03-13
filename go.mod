@@ -3,7 +3,7 @@ module gitee.com/dark.H/ProxyZ
 go 1.19
 
 require (
-	gitee.com/dark.H/gn v0.0.6
+	gitee.com/dark.H/gn v0.0.7
 	gitee.com/dark.H/gs v1.0.0
 	gitee.com/dark.H/gt v0.1.0
 	github.com/fatih/color v1.13.0
