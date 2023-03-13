@@ -72,6 +72,7 @@ func HTTPSGet(addr string, timeout ...int) (reply gs.Str, nerr error) {
 		rq.Timeout = timeout[0]
 	}
 	rq.Build()
+
 	if res := rq.Go(); res.Err != nil {
 		nerr = res.Err
 	} else {
