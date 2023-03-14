@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"text/template"
@@ -17,6 +18,11 @@ import (
 	"gitee.com/dark.H/ProxyZ/connections/prodns"
 	"gitee.com/dark.H/ProxyZ/router"
 	"gitee.com/dark.H/gs"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
+)
+
+var (
+	TMPPATH = filepath.Join(os.TempDir(), "Tmpfiles")
 )
 
 type ClientInterface interface {
@@ -175,6 +181,14 @@ func localSetupHandler() http.Handler {
 			}
 		}
 	}()
+
+	fs := http.FileServer(&assetfs.AssetFS{Asset: asset.Asset, AssetDir: asset.AssetDir, AssetInfo: asset.AssetInfo, Prefix: "Resources/web"})
+	if _, err := os.Stat(TMPPATH); err != nil {
+		os.MkdirAll(TMPPATH, os.ModePerm)
+	}
+	mux.Handle("/static/", http.StripPrefix("", fs))
+	mux.HandleFunc("/main", Web_Index)
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if globalClient.Routes.Count() == 0 {
 
@@ -348,24 +362,27 @@ func localSetupHandler() http.Handler {
 						globalClient.ClientConf.SetRouteLoc(loc)
 						go func() {
 							if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
-								for {
+								// for {
 
-									gs.Str("init failed pulling next route ... ").Color("y").Println("Fix")
-									newloc := GetNewRoute()
-									globalClient.ClientConf.TryClose()
-									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
-									gs.Dict[any]{
-										"name":     user,
-										"password": pwd,
-										"last":     newloc,
-										"proxy":    proxy,
-									}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
-									globalClient.ClientConf.ChangeRoute(newloc)
+								gs.Str("init failed pulling next route ... ").Color("y").Println("Fix")
+								newloc := GetNewRoute()
+								globalClient.ClientConf.TryClose()
+								gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+								gs.Dict[any]{
+									"name":     user,
+									"password": pwd,
+									"last":     newloc,
+									"proxy":    proxy,
+								}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+								globalClient.ClientConf.ChangeRoute(newloc)
+								gs.Str("Next .... again ").Println()
 
-									break
-								}
+								// }
 							} else {
-								gs.Str("err: " + err.Error()).Color("b").Println("Fix")
+								if err != nil {
+									gs.Str("err: " + err.Error()).Color("b").Println("Fix")
+
+								}
 
 							}
 
@@ -579,17 +596,17 @@ func localSetupHandler() http.Handler {
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
 						go func() {
-							for {
-								if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
-									gs.Str("init failed pulling next route ... ").Color("y").Println("Fix")
-									newloc := GetNewRoute()
-									globalClient.ClientConf.TryClose()
-									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
-									globalClient.ClientConf.ChangeRoute(newloc)
-								} else {
-									// gs.Str("init  ").Color("b").Println("Fix")
-									break
-								}
+							err := globalClient.ClientConf.Socks5Listen()
+							if err == clientcontroll.ErrRouteISBreak {
+								// for {
+
+								gs.Str("init failed pulling next route ... ").Color("y").Println("Fix")
+								newloc := GetNewRoute()
+								globalClient.ClientConf.TryClose()
+								gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+								globalClient.ClientConf.ChangeRoute(newloc)
+
+								// }
 							}
 						}()
 
@@ -629,15 +646,16 @@ func localSetupHandler() http.Handler {
 						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT, 70)
 
 						go func() {
+							err := globalClient.ClientConf.Socks5Listen()
 							for {
-								if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
-									newloc := GetNewRoute()
-									gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
-									globalClient.ClientConf.TryClose()
-									globalClient.ClientConf.ChangeRoute(newloc)
-								} else {
-									gs.Str("init  ").Color("b").Println("Fix")
-									break
+								if err == clientcontroll.ErrRouteISBreak {
+									for {
+										newloc := GetNewRoute()
+										gs.Str("init failed change next route ===> " + newloc).Color("b").Println("Fix")
+										globalClient.ClientConf.TryClose()
+										globalClient.ClientConf.ChangeRoute(newloc)
+
+									}
 								}
 							}
 
@@ -686,21 +704,31 @@ func localSetupHandler() http.Handler {
 			case "check":
 				if globalClient.ClientConf != nil {
 					ee := ""
-					if ST {
-						ee = "route"
+					if router.IsRouter() {
+						if ST {
+							ee = "route"
+							Reply(w, gs.Dict[any]{
+								"mode":    ee,
+								"loc":     globalClient.ClientConf.GetRouteLoc(),
+								"running": globalClient.ClientConf.GetRoute(),
+							}, true)
+						} else {
+							Reply(w, gs.Dict[any]{
+								"mode":    "",
+								"loc":     "China",
+								"running": globalClient.ClientConf.GetRoute(),
+							}, true)
+
+						}
+					} else {
+						ee = "normal"
 						Reply(w, gs.Dict[any]{
 							"mode":    ee,
 							"loc":     globalClient.ClientConf.GetRouteLoc(),
 							"running": globalClient.ClientConf.GetRoute(),
 						}, true)
-					} else {
-						Reply(w, gs.Dict[any]{
-							"mode":    "",
-							"loc":     "China",
-							"running": globalClient.ClientConf.GetRoute(),
-						}, true)
-
 					}
+
 				} else {
 					Reply(w, gs.Dict[any]{
 						"mode":    "",

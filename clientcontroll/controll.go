@@ -543,7 +543,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		break
 	}
 	if err != nil {
-		gs.Str("No Aviliable Config get!:" + err.Error()).Color("r").Println("Init")
+		// gs.Str("No Aviliable Config get!:" + err.Error()).Color("r").Println("Init")
 		c.LockArea(func() {
 			c.RouteErrCount += 1
 			c.initProfiles -= 1
@@ -552,7 +552,7 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		return nil
 	}
 	if reply == "" {
-		gs.Str("No Aviliable Config get!").Color("r").Println("Init")
+		// gs.Str("No Aviliable Config get!").Color("r").Println("Init")
 		c.LockArea(func() {
 			c.RouteErrCount += 1
 			c.initProfiles -= 1
@@ -703,7 +703,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 		gs.Str("Socks5 Start").Color("g", "B", "F").Println("service")
 	MLoop:
 		for {
-			if c.RouteErrCount > 15 {
+			if c.RouteErrCount > 10 {
 				c.ChangeNextRoute()
 				break MLoop
 			} else if c.ErrCount > 70 {
@@ -1320,7 +1320,7 @@ func (c *ClientControl) InitializationTunnels() (use bool) {
 	var errnum = 0
 
 	for i := 0; i < c.ClientNum; i++ {
-		time.Sleep(50 * time.Millisecond)
+
 		if i < 10 {
 			wait.Add(1)
 			go c.BuildChannel(i, &errnum, &wait)
@@ -1328,8 +1328,8 @@ func (c *ClientControl) InitializationTunnels() (use bool) {
 			go c.BuildChannel(i, &errnum)
 		}
 	}
+	time.Sleep(50 * time.Millisecond)
 	wait.Wait()
-	time.Sleep(1 * time.Second)
 	c.inited = true
 	use = true
 	if errnum > 5 {
