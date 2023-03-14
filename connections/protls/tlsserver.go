@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/asset"
@@ -24,10 +25,12 @@ var (
 type TlsServer struct {
 	config    *base.ProtocolConfig
 	tlsconfig *tls.Config
+	ips       gs.Dict[bool]
 	// RedirectMode  bool
 	// TunnelChan     chan Channel
 	// TcpListenPorts map[string]int
 	AcceptConn int
+	lock       sync.RWMutex
 	ZeroToDel  bool
 	// RedirectBook  *utils.Config
 }
@@ -63,6 +66,39 @@ func GetTlsConfig() *tls.Config {
 
 }
 
+func (tlsServer *TlsServer) Record(con net.Addr) {
+	ip := con.String()
+	if tlsServer.ips == nil {
+		tlsServer.ips = make(gs.Dict[bool])
+	}
+	if _, ok := tlsServer.ips[ip]; !ok {
+		tlsServer.lock.Lock()
+		tlsServer.ips[ip] = true
+		tlsServer.lock.Unlock()
+	}
+}
+
+func (tlsServer *TlsServer) DelRecord(con net.Conn) {
+	if tlsServer.ips == nil {
+		tlsServer.ips = make(gs.Dict[bool])
+	}
+	ip := con.RemoteAddr().String()
+	if _, ok := tlsServer.ips[ip]; !ok {
+		tlsServer.lock.Lock()
+		delete(tlsServer.ips, ip)
+		tlsServer.lock.Unlock()
+	}
+
+}
+
+func (tlsServer *TlsServer) GetAliveIPS() gs.List[string] {
+	ds := gs.List[string]{}
+	for k := range tlsServer.ips {
+		ds = append(ds, k)
+	}
+	return ds
+}
+
 func (tlsServer *TlsServer) AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error) {
 	wait10minute := time.NewTicker(1 * time.Minute)
 	listener := tlsServer.GetListener()
@@ -87,6 +123,7 @@ func (tlsServer *TlsServer) AcceptHandle(waitTime time.Duration, handle func(con
 			listener.Close()
 			return err
 		}
+		tlsServer.Record(con.RemoteAddr())
 		go handle(con)
 	}
 	// return
@@ -111,6 +148,7 @@ func (tlsserver *TlsServer) Accept() (con net.Conn, err error) {
 
 func (kserver *TlsServer) DelCon(con net.Conn) {
 	con.Close()
+	kserver.DelRecord(con)
 	kserver.AcceptConn -= 1
 }
 

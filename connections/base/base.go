@@ -95,6 +95,9 @@ func CloseALLPortUFW() {
 	// ps := []int{}
 	gs.Str(ss).Split("\n").Every(func(no int, i gs.Str) {
 		if i.In("/") {
+			if i.In("22") {
+				return
+			}
 			ii, err := strconv.Atoi(i.Split("/")[0].Str())
 			if err == nil {
 				ClosePortUFW(ii)

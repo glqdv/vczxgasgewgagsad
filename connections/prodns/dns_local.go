@@ -65,12 +65,13 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 					return
 				}
 			}
-
-			if this.ResolveRemoteOld(w, msg) {
-				this.lock.Lock()
-				this.queryWait -= 1
-				this.lock.Unlock()
-				return
+			for i := 0; i < 3; i++ {
+				if this.ResolveRemoteOld(w, msg) {
+					this.lock.Lock()
+					this.queryWait -= 1
+					this.lock.Unlock()
+					return
+				}
 			}
 
 			// if this.ResolveTest(w, msg) {
@@ -78,12 +79,12 @@ func (this *DNSHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 			// }
 		}
 
-		if this.ResolveRemote(w, msg) {
-			this.lock.Lock()
-			this.queryWait -= 1
-			this.lock.Unlock()
-			return
-		}
+		// if this.ResolveRemote(w, msg) {
+		// 	this.lock.Lock()
+		// 	this.queryWait -= 1
+		// 	this.lock.Unlock()
+		// 	return
+		// }
 
 	}
 	w.WriteMsg(&msg)
@@ -157,7 +158,7 @@ func (this *DNSHandler) ResolveRemoteOld(w dns.ResponseWriter, msg dns.Msg) bool
 	conn, eid, _, err := this.cons.ConnectRemote()
 	if err != nil {
 		gs.Str("no conn to dns :" + eid).Color("r").Println("Dns get con errr")
-		this.cons.ErrRecord(eid, 1)
+		this.cons.ErrRecord(eid, 2)
 		return false
 	}
 

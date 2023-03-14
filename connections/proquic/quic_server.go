@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"gitee.com/dark.H/ProxyZ/asset"
@@ -20,6 +21,8 @@ type QuicServer struct {
 	tlsconfig  *tls.Config
 	AcceptConn int
 	ZeroToDel  bool
+	ips        gs.Dict[bool]
+	lock       sync.RWMutex
 	handleConn func(con net.Conn) error
 }
 
@@ -67,6 +70,39 @@ func (quicServe *QuicServer) GetListener() (ls net.Listener) {
 	return
 }
 
+func (quicServ *QuicServer) Record(con net.Addr) {
+	ip := con.String()
+	if quicServ.ips == nil {
+		quicServ.ips = make(gs.Dict[bool])
+	}
+	if _, ok := quicServ.ips[ip]; !ok {
+		quicServ.lock.Lock()
+		quicServ.ips[ip] = true
+		quicServ.lock.Unlock()
+	}
+}
+
+func (quicServ *QuicServer) DelRecord(con net.Addr) {
+	if quicServ.ips == nil {
+		quicServ.ips = make(gs.Dict[bool])
+	}
+	ip := con.String()
+	if _, ok := quicServ.ips[ip]; !ok {
+		quicServ.lock.Lock()
+		delete(quicServ.ips, ip)
+		quicServ.lock.Unlock()
+	}
+
+}
+
+func (quicServ *QuicServer) GetAliveIPS() gs.List[string] {
+	ds := gs.List[string]{}
+	for k := range quicServ.ips {
+		ds = append(ds, k)
+	}
+	return ds
+}
+
 func (quicServe *QuicServer) AcceptHandle(waitTime time.Duration, handle func(con net.Conn) error) (err error) {
 	address := gs.Str("%s:%d").F(quicServe.config.Server, quicServe.config.ServerPort).Str()
 	wait10minute := time.NewTicker(1 * time.Minute)
@@ -94,6 +130,7 @@ func (quicServe *QuicServer) AcceptHandle(waitTime time.Duration, handle func(co
 		if err != nil {
 			return err
 		}
+		quicServe.Record(con.RemoteAddr())
 		go quicServe.accpeStream(con)
 	}
 
@@ -128,6 +165,7 @@ func (quicServe *QuicServer) SetCon(handle func(con net.Conn) error) {
 func (quicServe *QuicServer) DelCon(con net.Conn) {
 	con.Close()
 	quicServe.AcceptConn -= 1
+	quicServe.DelRecord(con.RemoteAddr())
 }
 
 // func (quicServe *QuicServer) GetListener() net.Listener {

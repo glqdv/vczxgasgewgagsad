@@ -56,7 +56,7 @@ var (
 	}
 )
 
-func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
+func RunLocal(server string, l int, channelNum int, startDNS, startHTTPProxy bool) {
 
 	if r, _ := servercontroll.TestServer(server); r > 5*time.Minute {
 		gs.Str("Test Failed").Println()
@@ -66,12 +66,13 @@ func RunLocal(server string, l int, startDNS, startHTTPProxy bool) {
 		gs.Str("server build time: %s ").F(r).Println("test")
 	}
 
-	cli := NewClientControll(server, l)
+	cli := NewClientControll(server, l, channelNum)
 	if startHTTPProxy {
 		go cli.HttpListen()
 	}
 
 	cli.Socks5Listen()
+	gs.Str("run normal local ").Println()
 
 }
 
@@ -121,19 +122,19 @@ type ClientControl struct {
 	statusSignal   gs.Strs
 }
 
-func NewClientControll(addr string, listenport int) *ClientControl {
+func NewClientControll(addr string, listenport int, channelNum int) *ClientControl {
 	addr = Wrap(addr)
 	gs.Str("New Client Controll:" + addr).Println()
 	c := &ClientControl{
 		Addr:           gs.Str(addr),
 		ListenPort:     listenport,
-		ClientNum:      100,
+		ClientNum:      channelNum,
 		DnsServicePort: 60053,
 		lastUse:        -1,
-		confNum:        10,
+		confNum:        channelNum,
 		errorid:        make(gs.Dict[int]),
 		ReportingMark:  make(gs.Dict[bool]),
-		proxyProfiles:  make(chan *base.ProtocolConfig, 10),
+		proxyProfiles:  make(chan *base.ProtocolConfig, channelNum),
 	}
 	for i := 0; i < c.ClientNum; i++ {
 		c.SmuxClients = append(c.SmuxClients, nil)
@@ -150,7 +151,7 @@ func (c *ClientControl) Init() {
 		}
 		gs.Str("Clar Proxy Profiles ").Println("Init")
 	}
-	c.proxyProfiles = make(chan *base.ProtocolConfig, 10)
+	c.proxyProfiles = make(chan *base.ProtocolConfig, c.confNum)
 	c.initProfiles = 0
 	c.errorid = make(gs.Dict[int])
 	c.ErrCount = 0
@@ -163,7 +164,9 @@ func (c *ClientControl) Init() {
 }
 
 func RecvMsg(reply gs.Str) (di any, o bool) {
-	d := reply.Json()
+	d := gs.Dict[any]{}
+	json.Unmarshal([]byte(reply), &d)
+	// d := reply.Json()
 	if c, ok := d["status"]; ok {
 		if c.(string) == "ok" {
 			o = true
@@ -246,6 +249,7 @@ func (c *ClientControl) ChangeRoute(host string) bool {
 	}
 	for {
 		time.Sleep(1 * time.Second)
+		gs.Str("wait closed .... ").Println()
 		if c.closed {
 			break
 		}
@@ -529,9 +533,9 @@ func (c *ClientControl) GetAviableProxy(tp ...string) (conf *base.ProtocolConfig
 		}
 	}
 	var err error
-	for _i := 0; _i < 5; _i++ {
+	for _i := 0; _i < 2; _i++ {
 
-		reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data, 10)
+		reply, err = servercontroll.HTTPSPost(addr+"/proxy-get", data, 5)
 		if err != nil {
 			time.Sleep(1 * time.Second)
 			continue
@@ -624,6 +628,7 @@ func (c *ClientControl) DNSListen() {
 
 			gs.Str("Wait Initialization finish .....").Color("g").Println()
 			for !c.inited {
+				gs.Str("Waiting .....").Color("g").Println()
 				time.Sleep(1 * time.Second)
 			}
 			prodns.SetDNSAddr(c.Addr.Str())
@@ -658,13 +663,14 @@ func (c *ClientControl) HttpListen() (err error) {
 CORE ！！！！！！！！
 */
 func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
-
+	c.closed = true
 	if inied != nil && inied[0] {
 
 	} else {
 		if !c.InitializationTunnels() {
 			c.IsRunning = false
 			c.IsBreak = true
+			gs.Str("Broken route need next").Println()
 			return ErrRouteISBreak
 		}
 	}
@@ -736,6 +742,7 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 				err := prosocks5.Socks5HandShake(&socks5con)
 				if err != nil {
 					gs.Str(err.Error()).Println("socks5 handshake")
+					c.AliveCount -= 1
 					return
 				}
 
@@ -751,11 +758,13 @@ func (c *ClientControl) Socks5Listen(inied ...bool) (err error) {
 					if prodns.IsLocal(ip) {
 						port := binary.BigEndian.Uint16(raw[8:10])
 						c.tcppipe(socks5con, gs.Str(ip+":%d").F(port))
+						c.AliveCount -= 1
 						return
 					} else if ip == "99.254.254.254" {
 
 						gs.Str("==== Config me ====").Color("b").Println("Config")
 						c.RedirectConfig(socks5con)
+						c.AliveCount -= 1
 						return
 					}
 
@@ -812,6 +821,9 @@ func (c *ClientControl) ErrRecord(eid string, i int) {
 	c.LockArea(func() {
 		c.errorid[eid] += i
 		c.ErrCount += i
+		if i > 1 {
+			c.RouteErrCount += 1
+		}
 		c.errCon += 1
 	})
 }
@@ -1148,14 +1160,20 @@ func (c *ClientControl) RebuildSmux(no int) (err error, conf *base.ProtocolConfi
 	return nil, conf
 }
 
-func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType string) {
-	gs.Str("before get id").Color("y").Println(id)
+func (c *ClientControl) GetSession(debug bool) (con net.Conn, err error, id, proxyType string) {
+	if debug {
+		gs.Str("before get id").Color("y").Println(id)
+	}
+
 	c.LockArea(func() {
 		c.lastUse += 1
 		c.lastUse = c.lastUse % c.ClientNum
 	})
 	var _c *base.ProtocolConfig
-	gs.Str("before get session").Color("y", "U").Println(id)
+	if debug {
+		gs.Str("before get session").Color("y", "U").Println(id)
+	}
+
 	e := c.SmuxClients[c.lastUse]
 	if e == nil {
 		for _i := 0; _i < 2; _i++ {
@@ -1167,15 +1185,26 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 
 			e = c.SmuxClients[c.lastUse]
 			if err == nil {
+				if e != nil {
+					id = e.ID()
+				}
+
 				break
 			}
 		}
 		if err != nil {
+
 			gs.Str("before get connection").Color("r").Println(id)
 			return nil, err, id, proxyType
 		}
 	}
-	gs.Str("before get connection").Color("c").Println(id)
+	if e != nil && e.ID() != "" {
+		id = e.ID()
+	}
+	if debug {
+		gs.Str("before get connection").Color("c").Println(id)
+	}
+
 	if e != nil && e.IsClosed() {
 		err, _c = c.RebuildSmux(c.lastUse)
 		if _c != nil {
@@ -1186,15 +1215,26 @@ func (c *ClientControl) GetSession() (con net.Conn, err error, id, proxyType str
 			gs.Str("err before create new connection").Color("r").Println(id)
 			return nil, errors.New(err.Error() + " in rebuild "), id, proxyType
 		}
-		gs.Str("before create new connection").Color("c", "U").Println(id)
+		if debug {
+			gs.Str("before create new connection").Color("c", "U").Println(id)
+		}
+
 		con, err = e.NewConnnect()
-		gs.Str("create new connection").Color("c", "B").Println(id)
+		if debug {
+			gs.Str("create new connection").Color("c", "B").Println(id)
+		}
+
 	} else {
 		if e != nil {
 			proxyType = e.GetProxyType()
-			gs.Str("before create new connection").Color("c", "U").Println(id)
+			if debug {
+				gs.Str("before create new connection").Color("c", "U").Println(id)
+			}
 			con, err = e.NewConnnect()
-			gs.Str("create new connection").Color("c", "B").Println(id)
+			if debug {
+				gs.Str("create new connection").Color("c", "B").Println(id)
+			}
+
 			return
 		} else {
 			gs.Str("err create new connection").Color("r").Println(id)
@@ -1233,7 +1273,7 @@ func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, statu
 			case "kcp":
 				msgs[channelID] = gs.Str('*').Color("y", "B")
 			case "quic":
-				msgs[channelID] = gs.Str('*').Color("m", "B")
+				msgs[channelID] = gs.Str('*').Color("c", "B")
 			default:
 				msgs[channelID] = gs.Str('*').Color("g", "B")
 			}
@@ -1245,15 +1285,17 @@ func (c *ClientControl) ShowChannelStatus(channelID int, ProxyType string, statu
 
 }
 
-func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait *sync.WaitGroup) {
-
-	defer wait.Done()
+func (c *ClientControl) BuildChannel(channelID int, errnum *int, wait ...*sync.WaitGroup) {
+	if wait != nil {
+		defer wait[0].Done()
+	}
 
 	c.ShowChannelStatus(channelID, "Unknow", 0)
 
 	err, conf := c.RebuildSmux(channelID)
 	if err == ErrRouteISBreak {
 		*errnum += 1
+		// return
 	}
 
 	pt := "unknow"
@@ -1278,16 +1320,19 @@ func (c *ClientControl) InitializationTunnels() (use bool) {
 	var errnum = 0
 
 	for i := 0; i < c.ClientNum; i++ {
-		wait.Add(1)
 		time.Sleep(50 * time.Millisecond)
-		go c.BuildChannel(i, &errnum, &wait)
+		if i < 10 {
+			wait.Add(1)
+			go c.BuildChannel(i, &errnum, &wait)
+		} else {
+			go c.BuildChannel(i, &errnum)
+		}
 	}
-
 	wait.Wait()
 	time.Sleep(1 * time.Second)
 	c.inited = true
 	use = true
-	if errnum > c.confNum/2 {
+	if errnum > 5 {
 		c.SetRouteLoc("this is break, try next !!!")
 		use = false
 	} else {
@@ -1316,10 +1361,13 @@ func (c *ClientControl) ConnectRemote() (con net.Conn, id, proxyType string, err
 
 	// connted := false
 
-	con, err, id, proxyType = c.GetSession()
+	con, err, id, proxyType = c.GetSession(false)
 	if err != nil {
 		// gs.Str("rebuild smux").Println("connect remote")
-		con, err, id, proxyType = c.GetSession()
+		con, err, id, proxyType = c.GetSession(true)
+		if err != nil {
+			c.ErrRecord(id, 2)
+		}
 	}
 	// gs.Str("smxu connect ").Println()
 	return

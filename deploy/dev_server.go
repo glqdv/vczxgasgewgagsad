@@ -255,12 +255,15 @@ func (o *Onevps) Test() time.Duration {
 	// l := sync.RWMutex{}
 	// var l time.Duration = 0
 	var ids gs.List[string]
+
 	l, ids := servercontroll.TestServer(o.Host)
+	// gs.Str("Test Connect:" + l.String()).Println(o.Host)
 	ol := l
 	ol += servercontroll.TestHost(o.Host)
 	ol /= 2
+	// gs.Str("Test Web:" + ol.String()).Println(o.Host)
 	// s.Wait()
-	o.ConnectedQuality = time.Duration(ol)
+	o.ConnectedQuality = ol
 	o.IDS = ids.Count()
 	o.Speed = o.ConnectedQuality.String()
 	return o.ConnectedQuality
@@ -575,6 +578,14 @@ func RouteModeInit(gitrepo string, namepwd ...string) {
 	}()
 }
 
+func SetRoutes(ss gs.List[*Onevps]) {
+	waitlock.Lock()
+	ss.Every(func(no int, i *Onevps) {
+		cacheRoutes = cacheRoutes.Add(i)
+	})
+	waitlock.Unlock()
+}
+
 func GetNewRoute() string {
 	gs.Str("wait testing").Print()
 	if cacheRoutes.Count() > 0 {
@@ -616,8 +627,9 @@ func QuietStdout(do func(e string)) {
 func RunLocalRouterMode(repo, name, pwd string, l int) {
 	RouteModeInit(repo, name, pwd)
 	server := GetNewRoute()
-	cli := clientcontroll.NewClientControll(server, l)
+	cli := clientcontroll.NewClientControll(server, l, 100)
 	cli.GetNewRoute = GetNewRoute
 	cli.Socks5Listen()
+	gs.Str("Run local router").Println()
 
 }

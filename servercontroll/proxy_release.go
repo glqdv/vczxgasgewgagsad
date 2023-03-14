@@ -45,8 +45,11 @@ func GetProxy(proxyType ...string) *base.ProxyTunnel {
 				lastUse += 1
 				lastUse = lastUse % Tunnels.Count()
 			})
-			tunnel := Tunnels.Nth(lastUse)
-
+			// nts := Tunnels.Sort(func(l, r *base.ProxyTunnel) bool {
+			// 	return l.GetClientNum() < r.GetClientNum()
+			// })
+			// tunnel := nts.Nth(0)
+			var tunnel *base.ProxyTunnel
 			for i := 0; i < 4; i++ {
 				var otunnel *base.ProxyTunnel
 				LockArea(func() {
@@ -57,7 +60,7 @@ func GetProxy(proxyType ...string) *base.ProxyTunnel {
 
 				})
 
-				if tunnel.GetConfig().ProxyType == otunnel.GetConfig().ProxyType {
+				if tunnel.GetConfig().ProxyType == otunnel.GetConfig().ProxyType || tunnel.GetClientNum() > otunnel.GetClientNum() {
 					continue
 				} else {
 					return tunnel
@@ -68,7 +71,10 @@ func GetProxy(proxyType ...string) *base.ProxyTunnel {
 		}
 	} else {
 		var tu *base.ProxyTunnel
-		Tunnels.Every(func(no int, i *base.ProxyTunnel) {
+		nts := Tunnels.Sort(func(l, r *base.ProxyTunnel) bool {
+			return l.GetClientNum() < r.GetClientNum()
+		})
+		nts.Every(func(no int, i *base.ProxyTunnel) {
 			if i.GetConfig().ProxyType == proxyType[0] {
 				tu = i
 			}
@@ -98,7 +104,7 @@ func DelProxy(name string) (found bool) {
 			continue
 		}
 		if tun.GetConfig().ID == name {
-			base.ClosePortUFW(tun.GetConfig().ServerPort)
+
 			if num, ok := ErrTypeCount[tun.GetConfig().ProxyType]; ok {
 				num += 1
 				LockArea(func() {
@@ -106,6 +112,7 @@ func DelProxy(name string) (found bool) {
 				})
 			}
 			tun.SetWaitToClose()
+			base.ClosePortUFW(tun.GetConfig().ServerPort)
 			found = true
 			continue
 		} else {
