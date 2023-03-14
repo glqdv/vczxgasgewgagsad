@@ -1,0 +1,143 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+crossorigin=""></script>
+<script src="/static/js/d3.v4.min.js"></script>
+<div id="geo-map"></div>
+<style>
+    #geo-map{
+        height: 100%;
+        width: 100%;
+    }
+</style>
+<script>
+$("#side-menu > li:nth-child(3) > a").attr("href","#").attr("onclick",`return  ShowHosts()`)
+
+var map = L.map('geo-map').setView([51.505, -0.09], 13);
+let gaode =  'http://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}'
+let gaode2 = "http://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}"
+let base = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+L.tileLayer(gaode2, {
+    maxZoom: 5,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+var last_ip = null;
+function UpdateState(){
+    $.ajax({
+        type:"post",                // method = "POST"
+        url:"/z-api",        // POST送信先のURL
+        data:JSON.stringify({"op":"check"}),  // JSONデータ本体
+        contentType: 'application/json', // リクエストの Content-Type
+        dataType: "json",           // レスポンスをJSONとしてパースする
+        success: function(json_data) {   // 200 OK時
+            console.log(json_data)
+            if (json_data.msg.running != last_ip){
+                last_ip = json_data.msg.running
+                $.ajax({
+                    type:"get",
+                    url:`http://api.ip2geo.pl/json/?ip=${json_data.msg.running}`,
+                    success: function(data){
+                        
+                        console.log("res->",data);
+                        L.marker([data.lat, data.lon]).addTo(map)
+                            .bindPopup(`Running Route in ${data.city}`)
+                            .openPopup();
+                        map.flyTo([data.lat, data.lon], 5)
+                    }
+                })
+            }
+        },
+        error: function() {         // HTTPエラー時
+            alert("Server Error. Please try again later.");
+        },
+        complete: function() {      // 成功・失敗に関わらず通信が終了した際の処理
+            console.log("fi");
+        }
+    });
+}
+
+var RouteIPs = []; 
+
+function UpdateHostInfo(one){
+    Routes[one.Host] = one;
+    RouteIPs.push(one.Host);
+    let pointid = "ip"+one.Host.replaceAll(".","-");
+    let e = document.querySelector("#"+pointid);
+    if (e != null){
+        var cd = 'ed5565'
+        if (one.Speed.indexOf("ms") > -1){
+            cd += "28a745"+parseInt(0xff * (3000-parseFloat(one.Speed))/3000 ).toString(16);
+            // while (cd.length < 6){
+            //     cd = "1"+cd;
+            // }
+
+        }else if (one.Speed.indexOf("s") > -1){
+            cd = "1c84c6"+ parseInt(0xff * (2.000-parseFloat(one.Speed))/2.000 ).toString(16);
+            // while (cd.length < 6){
+            //     cd = "1"+cd;
+            // }
+        }else{    
+            
+        }
+        
+        e.style.backgroundColor =`#${cd}`;
+        e.style.borderColor =`#${cd}`;
+        e.innerHTML = `${one.Host}<span class="badge badge-light">
+${one.Location}/${one.Speed}</span>`;
+    }else{
+        var cd = 'ed5565'
+        if (one.Speed.indexOf("ms") > -1){
+            cd += "28a745"+parseInt(0xff * (3000-parseFloat(one.Speed))/3000 ).toString(16);
+            // while (cd.length < 6){
+            //     cd = "1"+cd;
+            // }
+
+        }else if (one.Speed.indexOf("s") > -1){
+            cd = "1c84c6"+ parseInt(0xff * (2.0000-parseFloat(one.Speed))/2.0000 ).toString(16);
+            // while (cd.length < 6){
+            //     cd = "1"+cd;
+            // }
+        }else{    
+            
+        }
+        $("#modal-title").text("选择线路")
+        $("#modal-body").append(`
+        <button id="${pointid}" style="background-color:#${cd} border-color:#${cd} ; margin:4px" type="button" class="btn btn-primary">${one.Host}<span class="badge badge-light">
+${one.Location}/${one.Speed}</span></button>
+        `)
+    }
+    // background-color:#11ff22
+}
+
+function UpdateHosts(){
+    $.ajax({
+        type:"post",
+        url:"/z-api",
+        data:JSON.stringify({"op":"test"}),
+        dataType:"json",
+        success: json_data =>{
+            Routes = {};
+            RouteIPs = []; 
+            json_data.msg.forEach(onevps => {
+                UpdateHostInfo(onevps)
+            });
+        }
+    })
+}
+
+function ShowHosts(){
+    $("#modal-area").modal()
+}
+
+
+setTimeout(function(){
+    UpdateState();
+    UpdateHosts();
+    setInterval(UpdateState,10000)
+    setInterval(UpdateHosts,10000)
+    
+},1000)
+
+</script>

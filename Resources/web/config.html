@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- <meta name="viewport" content=", initial-scale=1.0"> -->
+    <title>Config⚙</title>
+    <style>
+        
+        html{
+            background-color: black;
+        }
+        pre{
+            color: white;
+            /* max-width: 80%; */
+            background: #101010;
+            font-family: system-ui;
+            border-left: 5px solid;
+            
+        }
+        button.ok{
+            float: right;
+            /* border-bottom: darkred; */
+            border-radius: 5px;
+            /* size: b5; */
+            width: fit-content;
+            height: fit-content;
+            position: absolute;
+            bottom: 5%;
+            min-width: 16%;
+            color: black;
+            background: #565656;
+            font-size: x-small;
+            color: white;
+
+            margin-left: 40px;
+        }
+        .use {
+            max-width: 80%;
+            margin-left: 40px;
+            margin-top: 10px;
+        }
+        .use-btn{
+            float: left;
+            border-bottom: #565656;
+            border-radius: 5px;
+            /* size: b5; */
+            /* position: absolute; */
+            /* bottom: 5%; */
+            /* max-height: 25px; */
+            min-width: 16%;
+            color: black;
+            background: #565656;
+            min-height: 25px;
+            font-size: x-small;
+            color: white;
+        }
+        #area{
+            bottom: 10%;
+            position: absolute;
+            width: 100%;
+        }
+        #input-area{
+            margin-left: 40px;
+            width: 80%;
+            min-height: 200px;
+            border-radius: 15px;
+            border-bottom: 5px solid gray;
+            border-right: 3px solid gray;
+        }
+        .anim{
+            animation-name: example;
+            animation-duration: 1s;
+            animation-iteration-count: 2;
+            animation-direction: alternate;  
+        }
+        .btn-area{
+            margin-left: 40px;
+            width: fit-content;
+            height: fit-content;
+            bottom: 10px;
+            width: 100%;
+            position: absolute;
+        }
+        .btn-area>button{
+            
+            /* color: black; */
+            color: white;
+            background: #565656;
+            border-radius: 5px;
+            
+        }
+        .i {
+            color: white;
+            border-left: 5px solid white;
+            padding-left: 5px;
+        }
+        @keyframes example {
+            from {
+                /* transform: rotate(0deg); */
+                /* left: 0%; */
+                width: 10%;
+            }
+            to {
+                /* transform: rotate(20deg); */
+                width: 90%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <pre>
+        Now setting:
+        {{ range $k, $v := .Kd }}
+            {{ $k }}
+        {{ end }}
+        ------------
+        Chains:
+        {{ range $k, $v := .Kv }}
+            {{ $k }} = {{ $v }}
+    
+        {{ end }}
+    </pre>
+    <div class="use">
+        <label class="i" for="num">选择跳转节点数目</label>
+    　　<input type="number" name="num" value="1" id="num" style="    margin-left: 76px;">   
+        <br>
+        <br>
+
+        <label class="i" for="out"  >出口 addr:port</label>
+    　　<input type="text" name="num" style="    margin-left: 95px;" id="out" >   
+        <br>
+        <button class="use-btn" id="use-btn" onclick="usethis() " >使用当前配置</button>   
+        <br>
+        
+    </div>
+    <div id="area">
+        <textarea id="input-area"  >
+## 这里添加节点
+## example ：
+#localhost:12345
+#192.168.1.2:12345
+</textarea>
+    </div>
+    <div class="btn-area">
+        <button class="" id="ok" onclick="myFunction() " >更新节点</button>
+        <button class="" id="cancel-jump"  onclick="reset() " >取消多跳</button> 
+    
+    </div>
+    
+    <script>
+        // Create Base64 Object
+        var Base64={_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",encode:function(e){var t="";var n,r,i,s,o,u,a;var f=0;e=Base64._utf8_encode(e);while(f<e.length){n=e.charCodeAt(f++);r=e.charCodeAt(f++);i=e.charCodeAt(f++);s=n>>2;o=(n&3)<<4|r>>4;u=(r&15)<<2|i>>6;a=i&63;if(isNaN(r)){u=a=64}else if(isNaN(i)){a=64}t=t+this._keyStr.charAt(s)+this._keyStr.charAt(o)+this._keyStr.charAt(u)+this._keyStr.charAt(a)}return t},decode:function(e){var t="";var n,r,i;var s,o,u,a;var f=0;e=e.replace(/[^A-Za-z0-9+/=]/g,"");while(f<e.length){s=this._keyStr.indexOf(e.charAt(f++));o=this._keyStr.indexOf(e.charAt(f++));u=this._keyStr.indexOf(e.charAt(f++));a=this._keyStr.indexOf(e.charAt(f++));n=s<<2|o>>4;r=(o&15)<<4|u>>2;i=(u&3)<<6|a;t=t+String.fromCharCode(n);if(u!=64){t=t+String.fromCharCode(r)}if(a!=64){t=t+String.fromCharCode(i)}}t=Base64._utf8_decode(t);return t},_utf8_encode:function(e){e=e.replace(/rn/g,"n");var t="";for(var n=0;n<e.length;n++){var r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r)}else if(r>127&&r<2048){t+=String.fromCharCode(r>>6|192);t+=String.fromCharCode(r&63|128)}else{t+=String.fromCharCode(r>>12|224);t+=String.fromCharCode(r>>6&63|128);t+=String.fromCharCode(r&63|128)}}return t},_utf8_decode:function(e){var t="";var n=0;var r=c1=c2=0;while(n<e.length){r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r);n++}else if(r>191&&r<224){c2=e.charCodeAt(n+1);t+=String.fromCharCode((r&31)<<6|c2&63);n+=2}else{c2=e.charCodeAt(n+1);c3=e.charCodeAt(n+2);t+=String.fromCharCode((r&15)<<12|(c2&63)<<6|c3&63);n+=3}}return t}}
+        function httpPost(url, data, after) {
+            var request = null; 
+            try{
+                request = new XMLHttpRequest();
+            } catch (e) {
+                // 适用于IE6
+                try {
+                    request = new ActiveXObject("Msxml2.XMLHTTP");
+                } catch (e) {
+                    // 适用于IE5.5，以及IE更早版本
+                    try{
+                        request = new ActiveXObject("Microsoft.XMLHTTP");
+                    } catch (e){}
+                }
+            }
+            if (request == null){
+                return
+            }
+            request.open("post",url, true);
+            request.send(data);
+            request.onreadystatechange = function() {
+                if(request.readyState == 4) {
+                    if (after != null){
+                        after(request.responseText);    
+                
+                    }
+                }
+            };
+        }
+
+        function myFunction(){
+            var pre = "my-inner-config-html---"
+            var e = document.getElementById("input-area");
+            var value = e.value;
+            console.log("raw:",value)
+            console.log("b:",Base64.encode(value))
+            var old = "";
+            
+            // window.location.href = "http://"+pre + Base64.encode(value)
+            var e2 = document.getElementById("ok");
+            httpPost("http://setting.me/old/",Base64.encode(value),data => {
+                // alert(data);
+                e2.className = old
+            
+                window.location.reload();
+            })
+            old = e2.className;
+            e2.className += " anim"
+            
+        }
+
+        function usethis(){
+            var e = document.getElementById("num");
+            var e2 = document.getElementById("out");
+            console.log(e.value, e2.value);
+            var sub2 = document.getElementById("use-btn");
+            var old = "";
+            httpPost("http://setting.me/use",Base64.encode(e2.value + "++" + e.value),data => {
+                // alert(data);
+                
+                sub2.className = old
+                window.location.reload();    
+            })
+            old = sub2.className
+            // alert(e2.value +"//" + e.value)
+            sub2.className += " anim"
+
+        }
+        function reset(){
+            // console.log(e.value, e2.value);
+            var old = "";
+            
+            var sub = document.getElementById("cancel-jump");
+            httpPost("http://setting.me/use",Base64.encode("++0"),data => {
+                // alert(data);
+                sub.className = old
+                window.location.reload();    
+            })
+            old = sub.className;
+            // alert(e2.value +"//" + e.value)
+            sub.className += " anim"
+
+        }
+    </script>
+</body>
+</html>

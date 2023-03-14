@@ -6,6 +6,7 @@ require (
 	gitee.com/dark.H/gn v0.0.7
 	gitee.com/dark.H/gs v1.0.0
 	gitee.com/dark.H/gt v0.1.0
+	github.com/elazarl/go-bindata-assetfs v1.0.1
 	github.com/fatih/color v1.13.0
 	github.com/go-git/go-git/v5 v5.5.2
 	github.com/golang/snappy v0.0.4
