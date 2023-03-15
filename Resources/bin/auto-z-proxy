@@ -1,0 +1,11 @@
+#!/bin/sh
+
+while true ; do
+
+    pro="$(ps | grep "/usr/local/bin/proxy-z" | grep -v grep )"
+    if [ "$pro" == "" ] ;then 
+        HOME="/root" /usr/local/bin/proxy-z -http -d  2>&1  1>/var/log/proxy-z.log
+    else
+       sleep 2;
+    fi
+done

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body{
+            background-color: black;
+        }
+        div.inp{
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 1ch;
+            
+        }
+        .inp > input{
+            min-height: 30px;
+            border-radius: 8px;
+            border-width: 0;
+        }
+
+        #login-btn {
+            
+        }
+        #login-btn div{
+            /* width: 0.9in;
+            height: 0.9in;
+            z-index: -2;
+            border-radius: 0.5in;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            font-size: medium; */
+        }
+
+        #d-name{
+            margin-top: 30%;
+        }
+        #login-btn:hover{
+            
+            background-color: white;
+            border: 2px;
+            transition: 2.4s;
+        }
+
+        #d-sub{
+            margin-top: 20%;
+        }
+        .s-btn {
+            --bRadius: 0.56in;
+            width: 1in;
+            height: 1in;
+            z-index: 1;
+            border-radius: 0.5in;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            font-size: medium;
+        }
+        .s-btn button {
+            width: 1in;
+            height: 1in;
+
+            /* border-radius: 0.5in; */
+            position: absolute;
+            text-align: center;
+            /* font-size: 24px; */
+            border: 2px solid rgb(164, 175, 213);
+            border-radius: var(--bRadius);
+            transition: all 0.3s;
+            background-color: #eee;
+        }
+        .s-btn button::before, .s-btn button::after {
+            content: "";
+            position: absolute;
+            /* border-radius: 20px; */
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border: 2px solid rgb(242, 243, 246);
+            transition: all 0.5s;
+            border-radius: var(--bRadius);
+            animation: clippath 3s infinite linear;
+        }
+        .s-btn button::after {
+            animation: clippath 3s infinite -1.5s linear;
+        }
+        .s-btn-running button{
+            border-color:  rgb(23, 141, 14);
+        }
+        .s-btn-running button::before, .s-btn-running button::after{
+            border-color:  rgb(23, 141, 14);
+        }
+        @keyframes clippath {
+            0%, 100% {
+                clip-path: inset(0 0 98% 0);
+            }
+            25% {
+                clip-path: inset(0 98% 0 0);
+            }
+            50% {
+                clip-path: inset(98% 0 0 0);
+            }
+            75% {
+                clip-path: inset(0 0 0 98%);
+            }
+        }
+
+        /*# sourceMappingURL=tt.css.map */
+
+        
+        
+
+    </style>
+</head>
+<body>
+    <div>
+        <div id="d-name" class="inp">
+            <input type="text" name="name" placeholder="account name" id="i-name">
+        </div>
+        <div id="d-pwd" class="inp">
+            <input type="password" name="pwd" id="i-pwd" placeholder="account password">
+        </div>
+        <div id="d-sub" class="inp">
+            <div class="s-btn">
+                <button id="login-btn" class=""  onclick="Login()" >Login</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelector("#d-name > input").focus()
+
+var waiterInterval =null;
+function Login(){
+    let user = document.querySelector("#i-name").value;
+    let pwd = document.querySelector("#i-pwd").value;
+    // let fd = new FormData();
+    // fd.append("name",user);
+    // fd.append("password",pwd);
+    document.querySelector("#login-btn").setAttribute("disabled","true")
+    console.log("loging")
+    fetch("/z-login",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            "name":user,
+            "password":pwd,
+        }),
+    }).then((response) => response.json()).then(data =>{
+        document.querySelector(".s-btn").classList.add("s-btn-running");
+        console.log(data);
+        if (data.status == "ok"){
+            waiterInterval = setInterval(_ =>{
+                document.querySelector("#login-btn").textContent = "wait";        
+                
+                Test();
+                
+                
+            }, 1000);
+        }
+    })
+}
+
+document.onkeydown = function(e){
+    if(e.keyCode == 13){
+        Login();
+    }
+}
+
+
+function Test(){
+    fetch("/z-api",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"test",
+        })
+    }).then((response) => {
+        document.querySelector("#login-btn").removeAttribute("disabled");
+        
+        return response.json();
+    }).then(d=>{
+        if (d.status == "ok"){
+            if (d.msg != null && d.msg.length > 0){
+                if (waiterInterval != null){
+                    clearInterval(waiterInterval);
+                    waiterInterval = null;
+                }
+                window.location.href ='/';
+            }
+            
+        }
+    })
+}
+    </script>
+</body>
+</html>

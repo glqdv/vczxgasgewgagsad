@@ -1,0 +1,12 @@
+*.exe
+proxy-z
+cmds/z-client/z-clien*
+cmds/z-client/node_modules
+cmds/z-client/out
+cmds/z-client/package.json
+cmds/z-client/package-lock.json
+cmds/z-debug/z-debug
+cmds/z-server/z-server
+examples/*
+*.DS_Store
+*geodb

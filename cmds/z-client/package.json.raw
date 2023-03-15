@@ -1,0 +1,21 @@
+{
+  "name": "proxy-z-gui",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "proxy-z gui",
+  "author": "Hello World!",
+  "license": "GNUs",
+  "dependencies": {
+    "electron-log": "^5.0.0-beta.16"
+  },
+  "extraResources": [
+    {
+      "from": "z-client",
+      "to": "z-client"
+    },
+    {
+      "from": "z-client.exe",
+      "to": "z-client.exe"
+    }
+  ]
+}

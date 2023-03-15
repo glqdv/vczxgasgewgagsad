@@ -1,0 +1,358 @@
+<div class="wrapper wrapper-content animated fadeInRight">
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5 langtag="page-hostlist"></h5>
+
+                    <div class="ibox-tools">
+                        <a class="collapse-link">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                        <a class="close-link">
+                            <i class="fa fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="content">
+                    <div class="table-responsive">
+                        <div id="toolbar">
+                            <span langtag="word-add">实时链路</span>
+                            
+                        </div>
+                        <!-- <table id="taskList_table" class="table-striped table-hover"
+                               data-mobile-responsive="true">
+
+                        </table> -->
+                    </div>
+                </div>
+                <div class="ibox-content">
+                    <form class="form-horizontal">
+                        <div class="form-group" id="chains-code" >
+                            <label class="control-label font-bold" langtag="word-chains code" ></label>
+                            <code>
+
+                                {{ range .Chains }}
+                                --> {{.}}       
+                                {{ end }}
+                            </code>
+                        </div>
+                        <input type="hidden" name="session" value="{{.session_id}}">
+                        <div class="form-group" id="target">
+                            <label class="control-label font-bold" langtag="word-new chains"></label>
+                            <div class="col-sm-10">
+                                <textarea class="form-control" name="chains" rows="6" placeholder=""
+                                        langtag="info-tls://localhost:12346"></textarea>
+                                <span class="help-block m-b-none" langtag="info-targettunnel"></span>
+                            </div>
+                        </div>
+                        <div id="tooltip"></div>
+                        <div class="hr-line-dashed"></div>
+                        <div class="form-group">
+                            <div class="col-sm-4 col-sm-offset-2">
+                                <button class="btn btn-success" type="button"
+                                        onclick="submitform('add', '{{.base_url}}/index/chains', $('form').serializeArray())">
+                                    <i class="fa fa-fw fa-lg fa-check-circle"></i> <span langtag="word-add"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <svg id="earth"></svg>
+                    
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="/static/js/d3.v4.min.js"></script>
+<script src="/static/js/topojson.v1.min.js"></script>
+<script>
+    
+    //copied from http://bl.ocks.org/espinielli/4d17fa15a7a5084e217992f985fba484
+d3.helper = {};
+
+d3.helper.tooltip = function(accessor){
+    return function(selection){
+        var tooltipDiv;
+        var bodyNode = d3.select('#tooltip').node();
+        selection.on("mouseover", function(d, i){
+            // Clean up lost tooltips
+            // console.log("tongle ")
+            d3.select('#tooltip').selectAll('div.tooltip-nodes').remove();
+            // Append tooltip
+            tooltipDiv = d3.select('#tooltip').append('div').attr('class', 'tooltip-nodes');
+            var absoluteMousePos = d3.mouse(bodyNode);
+            tooltipDiv.style('left', (absoluteMousePos[0] + 10)+'px')
+                .style('top', (absoluteMousePos[1] - 15)+'px')
+                .style('position', 'absolute') 
+                .style('z-index', 1001);
+            // Add text using the accessor function
+            var tooltipText = accessor(d, i) || '';
+            // Crop text arbitrarily
+            //tooltipDiv.style('width', function(d, i){return (tooltipText.length > 80) ? '300px' : null;})
+            //    .html(tooltipText);
+        })
+        .on('mousemove', function(d, i) {
+            // Move tooltip
+            var absoluteMousePos = d3.mouse(bodyNode);
+            tooltipDiv.style('left', (absoluteMousePos[0] + 10)+'px')
+                .style('top', (absoluteMousePos[1] - 15)+'px');
+            var tooltipText = accessor(d, i) || '';
+            tooltipDiv.html(tooltipText);
+        })
+        .on("mouseout", function(d, i){
+            // Remove tooltip
+            tooltipDiv.remove();
+        });
+
+    };
+};
+</script>
+<script>
+    const width = 960;
+    const height = 500;
+    const sensitivity = 75
+    const config = {
+      speed: 0.005,
+      verticalTilt: -30,
+      horizontalTilt: 0
+    }
+    
+    const svg = d3.select('#earth')
+        .attr('width', width).attr('height', height);
+    const markerGroup = svg.append('g').attr("id","mark");
+    const linkhandler = svg.append("g").attr("id","link");
+    const graticuleGroup = svg.append("g").attr("id","graticule");
+    const countryGroup = svg.append("g").attr("id", "country");
+    const cityGroup = svg.append("g").attr("id", "city");
+    const projection = d3.geoOrthographic();
+    const initialScale = projection.scale();
+    const path = d3.geoPath().projection(projection);
+    const center = [width/2, height/2];
+    const arcProject = d3.arc();
+    var countries = null;
+    var country_names = [];
+    
+    var countryHandler = null;
+    var cityHandler = null;
+    var borders = null;
+    var world = null;
+    var countryG = null;
+    var tooltip = d3.select("div.tooltip");
+    var cities = null;
+    drawGlobe();    
+    // drawGraticule();
+
+    var links = [];
+    let locations = [
+    
+        {"latitude": 22, "longitude": 88},
+        {"latitude": 12.61315, "longitude": 38.37723},
+        {"latitude": -30, "longitude": -58},
+        {"latitude": -14.270972, "longitude": -170.132217},
+        {"latitude": 28.033886, "longitude": 1.659626},
+        {"latitude": 40.463667, "longitude": -3.74922},
+        {"latitude": 35.907757, "longitude": 127.766922},
+        {"latitude": 23.634501, "longitude": -102.552784}
+
+    ];
+    // enableRotation();    
+
+
+    function drawGlobe() {  
+        d3.queue()
+            .defer(d3.json, '/static/js/world-110m.json')          
+            .defer(d3.tsv, '/static/js/world-country-names.tsv')
+            // .defer(d3.json, '/static/js/geocity.json')
+            .await((error, worldData, names) => {
+                countries = topojson.feature(worldData, worldData.objects.countries).features;
+                borders = topojson.mesh(worldData, worldData.objects.countries, function(a, b) { return a !== b; });
+                names.forEach(function(i){
+                    console.log("country:",i)
+                    country_names[i.id]=i.name;
+                });
+                // cities = citys;
+
+                
+
+                // country_names = names;
+                countryHandler = countryGroup.selectAll(".segment")
+                    .data(topojson.feature(worldData, worldData.objects.countries).features)
+                    .enter().append("path")
+                    .attr("class", "segment")
+                    .attr("d", path)
+                    .style("stroke", "#888")
+                    .style("stroke-width", "1px")
+                    .style("fill", (d, i) => '#e5e5e5')
+                    .style("opacity", ".6")
+                    .on("mouseover", function(d,i ){
+                        console.log("mouse over:",d);
+                        console.log("mouse over this:",this);
+                        d3.select(this)
+                            .style("fill","grey")
+                            .style("stroke-width",2);
+                        return tooltip.style("hidden", false).html(d.name);
+            
+                        // tooltip.text(d); return tooltip.style("visibility", "visible");
+                    })
+                    .on("mouseout", function(d,i ){
+                        d3.select(this)
+                            .style("fill","#e5e5e5")
+                            .style("stroke-width",1);
+                    });
+                
+                // cityHandler = cityGroup.selectAll(".city")
+                //     .data(citys.features)
+                //     .enter().append("path")
+                //     .attr("d", path)
+                //     .style("stroke", "#777")
+                //     .style("stroke-width", "1px")
+                //     .style("fill", (d, i) => '#e3e3e3')
+                //     .style("opacity", ".5")
+
+                countryHandler.call(d3.helper.tooltip((d,i) => {
+                        // console.log(d,i);
+                        return "<b>"+country_names[d.id]+ "</b>";
+                }));
+     
+                    drawMarkers();
+                    drawLinks();
+                    svg.call(d3.drag().on('drag', dragGrlobal));
+                    
+                        // .call(d3.zoom().on('zoom', () => {
+                        //     if(d3.event.transform.k > 0.3) {
+                        //         projection.scale(initialScale * d3.event.transform.k)
+                        //         // path = d3.geoPath().projection(projection)
+                        //         svg.selectAll("path").attr("d", path)
+                        //         // globe.attr("r", projection.scale())
+                        //     }
+                        //     else {
+                        //         d3.event.transform.k = 0.3
+                        //     }
+                        // }))
+                
+              
+            });
+    }
+
+    function drawGraticule() {
+        const graticule = d3.geoGraticule()
+            .step([10, 10]);
+
+        graticuleGroup.append("path")
+            .datum(graticule)
+            .attr("class", "graticule")
+            .attr("d", path)
+            .style("fill", "#fff")
+            .style("stroke", "#ccc");
+    }
+
+    function dragGrlobal(){
+        const rotate = projection.rotate()
+        const k = sensitivity / projection.scale()
+        projection.rotate([
+            rotate[0] + d3.event.dx * k,
+            rotate[1] - d3.event.dy * k
+        ])
+        countryGroup.selectAll("path").attr("d", path);
+        // city 加载太慢
+        // cityGroup.selectAll("path").attr("d", path);
+                    
+        drawMarkers();
+        drawLinks();
+        // drawline();
+        // path = d3.geoPath().projection(projection)
+        // svg.selectAll("path").attr("d", path)
+    }
+    // function enableRotation() {
+    //     d3.timer(function (elapsed) {
+    //         projection.rotate([config.speed * elapsed - 120, config.verticalTilt, config.horizontalTilt]);
+    //         svg.selectAll("path").attr("d", path);
+    //         drawMarkers();
+    //     });
+    // }
+
+    function drawMarkers() {
+        const markers = markerGroup.selectAll('circle')
+            .data(locations);
+        markers
+            .enter()
+            .append('circle')
+            .merge(markers)
+            .attr('cx', d => projection([d.longitude, d.latitude])[0])
+            .attr('cy', d => projection([d.longitude, d.latitude])[1])
+            .attr('fill', d => {
+                const coordinate = [d.longitude, d.latitude];
+                gdistance = d3.geoDistance(coordinate, projection.invert(center));
+                return gdistance > 1.57 ? 'none' : 'steelblue';
+            })
+            .attr('r', 7);
+
+        markerGroup.each(function () {
+            this.parentNode.appendChild(this);
+        });
+    }
+
+    function drawLinks(){
+        const linkers = linkhandler.selectAll('path')
+            .data(links);
+        linkers
+            .enter()
+            .append("path")
+            .merge(linkers)
+            .attr("d", function(d){
+                // console.log("link:",d);
+                return path(d);
+            })
+            .style("fill", "white")
+            .style("stroke", "steelblue")
+            .style("stroke-width", 1);
+    }
+
+    function linkTwoLocation(one, two){
+        let link = {
+            type: "LineString",
+            coordinates: [one, two]
+        }
+        let found = false;
+        links.forEach(l=>{
+            if (l.coordinates[0][0] == one[0] && l.coordinates[0][1] == one[1] && l.coordinates[1][0] == two[0] && l.coordinates[1][1] == two[1] ){
+                found = true;
+            }
+            if (l.coordinates[0][0] == two[0] && l.coordinates[0][1] == two[1] && l.coordinates[1][0] == one[0] && l.coordinates[1][1] == one[1] ){
+                found = true;
+            }
+        })
+        if (!found){
+            links.push(link);
+        }
+        if (links.length > 0){
+            drawLinks();
+        }
+    }
+
+    function mark(one){
+        locations.push( {"longitude": one[0], "latitude": one[1]});
+        drawMarkers();
+    }
+
+    // function drawline(){
+    //     const markers = markerGroup.selectAll('circle')
+    //         .data(locations);
+    //     svg.selectAll("line")
+    //         .data([markers[0], markers[1]] )
+    //         .enter()
+    //         .append("line")
+    //         .merge(markers) 
+    //         .attr("x1", d=>projection([d[0].longitude, d[0].latitude])[0])
+    //         .attr("y1", d=>projection([d[0].longitude, d[0].latitude])[1])
+    //         .attr("x2", d=>projection([d[1].longitude, d[1].latitude])[0])
+    //         .attr("y2", d=>projection([d[1].longitude, d[1].latitude])[1])
+    //         .attr("stroke-width", 1)
+    //         .attr("stroke", "black");
+    // }
+</script>

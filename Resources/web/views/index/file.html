@@ -1,0 +1,99 @@
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="ibox float-e-margins">
+                <div class="ibox-title">
+                    <h5 langtag="page-hostlist"></h5>
+
+                    <div class="ibox-tools">
+                        <a class="collapse-link">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                        <a class="close-link">
+                            <i class="fa fa-times"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="ibox-content">
+                    <div id="tooltip"></div>
+                    <div class="my-3 p-3 bg-body rounded shadow-sm">
+                        <h6 class="border-bottom pb-2 mb-0">Uploaded Files</h6>
+                        {{ range .files }}
+                        <div class="d-flex text-muted pt-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-arrow-down" viewBox="0 0 16 16">
+                                <path d="M8.5 6.5a.5.5 0 0 0-1 0v3.793L6.354 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0-.708-.708L8.5 10.293V6.5z"/>
+                                <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                            </svg>
+                          <!-- <svg class="bd-placeholder-img flex-shrink-0 me-2 rounded" width="32" height="32" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 32x32" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="#007bff"></rect><text x="50%" y="50%" fill="#007bff" dy=".3em">32x32</text></svg> -->
+                    
+                          <div class="pb-3 mb-0 small lh-sm border-bottom w-100">
+                            <div class="d-flex justify-content-between">
+                              <strong class="text-gray-dark">{{ .Name }}</strong>
+                              <a href="/upload/{{.Name}}">下载</a>
+                            </div>
+                            <span class="d-block"><small><code>{{.Size}} MB</code></small></span>
+                          </div>
+                        </div>
+                        {{end}}
+                        <small class="d-block text-end mt-3">
+                          <a href="#">{{.root}}</a>
+                        </small>
+                      </div>
+                    <form class="form-horizontal">
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label font-bold" langtag="word-File Upload"></label>
+                            <div class="col-sm-10">
+                                <input class="form-control" type="file" name="file"  langtag="word-file">
+                            </div>
+                        </div>
+                    
+                        <div class="hr-line-dashed"></div>
+                        <div class="form-group">
+                            <div class="col-sm-4 col-sm-offset-2">
+                                <button class="btn btn-success" type="button" onclick="upload_file('/index/file')">
+                                    <i class="fa fa-fw fa-lg fa-check-circle"></i> <span langtag="word-upload"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function upload_file(url){
+    var formData = new FormData();
+    var name = $("[name='file']").val();
+    formData.append("file",$("[name='file']")[0].files[0]);
+    formData.append("name",name);
+    $.ajax({ 
+        url : url, 
+        type : 'POST', 
+        data : formData, 
+        // 告诉jQuery不要去处理发送的数据
+        processData : false, 
+        contentType : false,
+        beforeSend:function(){
+            console.log("正在进行，请稍候");
+        },
+        success : function(responseStr) { 
+            let res = JSON.parse(responseStr)
+            console.log("res:",res, "||",res.status)
+            alert(res.msg);
+            if(res.status){
+                document.location.reload();
+            }else{
+                console.log("失败");
+            }
+        }, 
+        error : function(responseStr) { 
+            let res = JSON.parse(responseStr)
+            console.log("res:",res, "||",res.status)
+            alert(res.msg);
+        } 
+    });
+
+}
+</script>
