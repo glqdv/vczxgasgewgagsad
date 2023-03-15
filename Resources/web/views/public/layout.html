@@ -50,17 +50,21 @@
                 </li>
                 <li class="{{if eq "index" .Menu}}active{{end}}">
                     <a href="{{.WebBaseUrl}}/"><i class="fa fa-tachometer-alt fa-lg"></i>
-                    <span class="nav-label" langtag="word-dashboard">Index</span></a>
+                    <span class="nav-label" langtag="word-dashboard">当前</span></a>
                 </li>
                 <li class="{{if eq "chains" .Menu}}active{{end}}">
                     <a href="{{.WebBaseUrl}}/index/chains"><i class="fa fa-desktop fa-lg"></i>
-                    <span class="nav-label" langtag="proxy-chains">Routes</span></a>
+                    <span class="nav-label" langtag="proxy-chains">选择线路</span></a>
                 </li>
                 <li class="{{if eq "host" .Menu}}active{{end}}">
-                    <a href="{{.WebBaseUrl}}/index/hostlist"><i class="fa fa-globe fa-lg"></i>
-                    <span class="nav-label" langtag="scheme-host">Host</span></a>
+                    <a href="{{.WebBaseUrl}}/z-rule"><i class="fa fa-globe fa-lg"></i>
+                    <span class="nav-label" langtag="scheme-host">本地列表（不使用代理,只适用路由器）</span></a>
                 </li>
                 <li class="{{if eq "reverse-client" .Menu}}active{{end}}">
+                    <a href="{{.WebBaseUrl}}/"><i class="fa fa-retweet fa-lg"></i>
+                    <span class="nav-label" langtag="reverse-client">开启路由器（只在路由器上使用）</span></a>
+                </li>
+                <!-- <li class="{{if eq "reverse-client" .Menu}}active{{end}}">
                     <a href="{{.WebBaseUrl}}/index/reverse-session"><i class="fa fa-retweet fa-lg"></i>
                     <span class="nav-label" langtag="reverse-client"></span></a>
                 </li>
@@ -71,7 +75,7 @@
                 <li class="{{if eq "File" .Menu}}active{{end}}">
                     <a href="{{.WebBaseUrl}}/index/file"><i class="fa fa-random fa-lg"></i>
                     <span class="nav-label" langtag="scheme-file">File</span></a>
-                </li>
+                </li> -->
                 <!-- <li class="{{if eq "http" .Menu}}active{{end}}">
                     <a href="{{.WebBaseUrl}}/index/http"><i class="fa fa-server fa-lg"></i>
                     <span class="nav-label" langtag="scheme-httpproxy"></span></a>
@@ -181,6 +185,55 @@ function ModalSet(body){
 }
 
 
+function SetRouter(st) {
+    // document.querySelector("#router").style.display = "none"
+    if (st){
+        fetch("/z-route",{
+            method:"POST",
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                op:"start",
+                state:st,
+            })
+        }).then((response) => {
+            try{
+                return response.json();
+            }catch {
+                return null;
+            }
+        }).then(d=>{
+            document.querySelector("#router").style.display = "flex"
+            if (d.status =="ok"){
+                let r = document.querySelector("#router");
+                r.textContent = "Stop Router"
+                r.setAttribute("onclick", 'return SetRouter(false)')
+            }
+        })   
+    }else{
+        fetch("/z-route",{
+            method:"POST",
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                op:"stop",
+                state:st,
+            })
+        }).then((response) => {
+            try{
+                return response.json();
+            }catch {
+                return null;
+            }
+        }).then(d=>{
+            document.querySelector("#router").style.display = "flex"
+            if (d.status =="ok"){
+                let r = document.querySelector("#router");
+                r.textContent = "Start Router"
+                r.setAttribute("onclick", 'return SetRouter(true)')
+            }
+        })   
+
+    }
+}
 
 </script>
 {{/*<script src="http://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>*/}}
