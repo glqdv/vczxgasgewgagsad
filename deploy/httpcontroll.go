@@ -187,9 +187,9 @@ func localSetupHandler() http.Handler {
 		os.MkdirAll(TMPPATH, os.ModePerm)
 	}
 	mux.Handle("/static/", http.StripPrefix("", fs))
-	mux.HandleFunc("/main", Web_Index)
+	mux.HandleFunc("/", Web_Index)
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/old", func(w http.ResponseWriter, r *http.Request) {
 		if globalClient.Routes.Count() == 0 {
 
 			http.Redirect(w, r, "/z-login", http.StatusSeeOther)
@@ -761,7 +761,7 @@ func LocalAPI(openbrowser, global bool) {
 	}
 	if !openbrowser {
 		go func() {
-			time.Sleep(2 * time.Second)
+			time.Sleep(6 * time.Second)
 			if runtime.GOOS == "windows" {
 				gs.Str("start http://localhost:35555/").Exec()
 			} else if runtime.GOOS == "darwin" {

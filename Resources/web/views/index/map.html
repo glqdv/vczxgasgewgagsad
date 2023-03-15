@@ -68,13 +68,13 @@ function UpdateHostInfo(one){
     if (e != null){
         var cd = 'ed5565'
         if (one.Speed.indexOf("ms") > -1){
-            cd += "28a745"+parseInt(0xff * (3000-parseFloat(one.Speed))/3000 ).toString(16);
+            cd += "28a745"+parseInt(0xff * (3000-parseFloat(one.Speed))/2000 ).toString(16);
             // while (cd.length < 6){
             //     cd = "1"+cd;
             // }
 
-        }else if (one.Speed.indexOf("s") > -1){
-            cd = "1c84c6"+ parseInt(0xff * (2.000-parseFloat(one.Speed))/2.000 ).toString(16);
+        }else if (one.Speed.indexOf("s") > -1 && parseFloat(one.Speed) < 10 ){
+            cd = "1c84c6"+ parseInt(0xff * (3.000-parseFloat(one.Speed))/2.000 ).toString(16);
             // while (cd.length < 6){
             //     cd = "1"+cd;
             // }
@@ -89,13 +89,13 @@ ${one.Location}/${one.Speed}</span>`;
     }else{
         var cd = 'ed5565'
         if (one.Speed.indexOf("ms") > -1){
-            cd += "28a745"+parseInt(0xff * (3000-parseFloat(one.Speed))/3000 ).toString(16);
+            cd += "28a745"+parseInt(0xff * (3000-parseFloat(one.Speed))/2000 ).toString(16);
             // while (cd.length < 6){
             //     cd = "1"+cd;
             // }
 
-        }else if (one.Speed.indexOf("s") > -1){
-            cd = "1c84c6"+ parseInt(0xff * (2.0000-parseFloat(one.Speed))/2.0000 ).toString(16);
+        }else if (one.Speed.indexOf("s") > -1 && parseFloat(one.Speed) < 10 ){
+            cd = "1c84c6"+ parseInt(0xff * (3.0000-parseFloat(one.Speed))/2.0000 ).toString(16);
             // while (cd.length < 6){
             //     cd = "1"+cd;
             // }
@@ -104,8 +104,8 @@ ${one.Location}/${one.Speed}</span>`;
         }
         $("#modal-title").text("选择线路")
         $("#modal-body").append(`
-        <button id="${pointid}" style="background-color:#${cd} border-color:#${cd} ; margin:4px" type="button" class="btn btn-primary">${one.Host}<span class="badge badge-light">
-${one.Location}/${one.Speed}</span></button>
+        <button id="${pointid}" onclick="Switch('${one.Host}')" style="background-color:#${cd} border-color:#${cd} ; margin:4px ; min-width:400px" type="button" class="btn btn-primary">${one.Host}<span class="badge badge-warning">
+${one.Location}</span>/${one.Speed}</button>
         `)
     }
     // background-color:#11ff22
@@ -125,6 +125,38 @@ function UpdateHosts(){
             });
         }
     })
+}
+
+function Switch(host){
+    $("#modal-area").modal('hide')
+    // CanCelSelect();
+    // document.querySelector(`div[host="${host}"]`).setAttribute("onclick","return false");
+    fetch("/z-api", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            op:"switch",
+            host:host,
+        })
+    }).then((response) => {
+        try{
+            return response.json()
+        } catch{
+            return null
+        }
+        
+    }).then(d=>{
+        state = "ready";
+        
+        if (d != null){
+            if (d.status == "ok"){
+                UpdateState()
+            }else{
+                // alert(d.msg);
+            }
+
+        }
+    });   
 }
 
 function ShowHosts(){
