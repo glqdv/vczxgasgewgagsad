@@ -20,6 +20,7 @@ import (
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -82,6 +83,40 @@ func Auth(name, host, passwd string, callbcak func(c *ssh.Client, s *ssh.Session
 	}
 	defer sess.Close()
 	callbcak(client, sess)
+}
+
+func CliOneHost(user, host, pwd string) {
+	Auth(user, host, pwd, func(client *ssh.Client, sess *ssh.Session) {
+		gs.Str("success shell login by ssh use :%s@%s/%s").F(user, host, pwd).Color("g").Println()
+		// var out bytes.Buffer
+		sess.Stdout = os.Stdout
+		sess.Stderr = os.Stderr
+		sess.Stdin = os.Stdin
+		modes := ssh.TerminalModes{
+			ssh.ECHO:          1,
+			ssh.TTY_OP_ISPEED: 14400,
+			ssh.TTY_OP_OSPEED: 14400,
+		}
+		fd := int(os.Stdin.Fd())
+		oldState, err := terminal.MakeRaw(fd)
+		if err != nil {
+			log.Fatalln(err.Error())
+		}
+		defer terminal.Restore(fd, oldState)
+		termWidth, termHeight, err := terminal.GetSize(fd)
+		if err != nil {
+			log.Fatal("get shell size:", err)
+		}
+		if err := sess.RequestPty("xterm", termHeight, termWidth, modes); err != nil {
+			log.Fatal("request tty err", err)
+		}
+		if err := sess.Shell(); err != nil {
+			log.Fatal("shell failed", err)
+		}
+		if err := sess.Wait(); err != nil {
+			log.Fatal("wait err:", err)
+		}
+	})
 }
 
 func DepOneHost(user, host, pwd string) {
@@ -178,6 +213,53 @@ func DepBySSH(sshStr string) {
 	}
 	if user != "" && host != "" {
 		DepOneHost(user, host, pwd)
+	} else {
+		gs.Str("user:%s host:%s pwd:%s").F(user, host, pwd).Println()
+	}
+}
+
+func SSHCli(sshStr string) {
+	user := "root"
+	host := ""
+	pwd := ""
+	if gs.Str(sshStr).In("@") {
+		gs.Str(sshStr).Split("@").Every(func(no int, i gs.Str) {
+			if no == 0 {
+				user = i.Str()
+			} else {
+				if i.In("/") {
+					i.Split("/").Every(func(no int, i gs.Str) {
+						if no == 0 {
+							host = i.Str()
+						} else {
+							pwd = i.Str()
+						}
+					})
+
+				} else {
+					host = i.Str()
+				}
+			}
+		})
+	} else {
+		i := gs.Str(sshStr)
+		if i.In("/") {
+			i.Split("/").Every(func(no int, i gs.Str) {
+				if no == 0 {
+					host = i.Str()
+				} else {
+					pwd = i.Str()
+				}
+			})
+		} else {
+			host = i.Str()
+		}
+	}
+	if !gs.Str(host).In(":") {
+		host += ":22"
+	}
+	if user != "" && host != "" {
+		CliOneHost(user, host, pwd)
 	} else {
 		gs.Str("user:%s host:%s pwd:%s").F(user, host, pwd).Println()
 	}

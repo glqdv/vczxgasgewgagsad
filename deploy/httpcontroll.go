@@ -571,7 +571,9 @@ func localSetupHandler() http.Handler {
 				return
 
 			case "switch":
+
 				if globalClient.ClientConf != nil && !globalClient.ClientConf.IfRunning() {
+					gs.Str("Switch  not start").Println()
 					Reply(w, "wait ...", false)
 					return
 				}
