@@ -202,11 +202,11 @@ function CheckRoute_state(){
         if (d.msg.can){
             
             if (!d.msg.running){
-                let r = document.querySelector("#start-route-tag>span");
+                let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Start Router"
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
             }else{
-                let r = document.querySelector("#start-route-tag>span");
+                let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Stop Router"
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
             }
@@ -234,7 +234,7 @@ function SetRouter(st) {
         }).then(d=>{
             
             if (d.status =="ok"){
-                let r = document.querySelector("#start-route-tag>span");
+                let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Stop Router"
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
             }
@@ -256,7 +256,7 @@ function SetRouter(st) {
         }).then(d=>{
             document.querySelector("#start-route-tag").style.display = "flex"
             if (d.status =="ok"){
-                let r = document.querySelector("#start-route-tag>span");
+                let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Start Router"
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
             }

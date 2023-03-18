@@ -93,22 +93,9 @@ func (pt *ProxyTunnel) Server(after func()) (err error) {
 	return
 }
 
-// func (pt *ProxyTunnel) SetVPN(v *vpn.VPNHandler) {
-// 	pt.vpnHandler = v
-// }
-
-// func (pt *ProxyTunnel) ClearVPN() {
-// 	if pt.vpnHandler != nil {
-// 		pt.vpnHandler.CloseVPN()
-// 	}
-// 	pt.vpnHandler = nil
-// }
-
 func (pt *ProxyTunnel) SetWaitToClose() {
 	pt.protocl.TryClose()
-	// if pt.vpnHandler != nil {
-	// 	pt.vpnHandler.CloseVPN()
-	// }
+
 }
 
 func (pt *ProxyTunnel) SetProtocol(procol Protocol) {
