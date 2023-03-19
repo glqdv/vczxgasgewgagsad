@@ -449,6 +449,7 @@ func localSetupHandler() http.Handler {
 					ST = false
 					return
 				} else {
+					gs.Str("OPen Fire ").Println()
 					router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
 					ST = true
 					if globalClient.ClientConf != nil {
@@ -461,6 +462,7 @@ func localSetupHandler() http.Handler {
 				}
 
 			case "start":
+				gs.Str("Start Fire ").Println()
 				router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
 				if user != "" && pwd != "" && last != "" {
 					gs.Dict[any]{
@@ -571,7 +573,9 @@ func localSetupHandler() http.Handler {
 				return
 
 			case "switch":
+
 				if globalClient.ClientConf != nil && !globalClient.ClientConf.IfRunning() {
+					gs.Str("Switch  not start").Println()
 					Reply(w, "wait ...", false)
 					return
 				}

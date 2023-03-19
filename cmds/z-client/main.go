@@ -32,6 +32,7 @@ func main() {
 	// useVPN := false
 	global := false
 	build := false
+	sshCli := false
 	switch_route := false
 	channelNum := 70
 	// cli := false
@@ -41,6 +42,7 @@ func main() {
 	flag.IntVar(&deploy.LOCAL_PORT, "l", 1091, "set local socks5 listen port")
 
 	flag.BoolVar(&dev, "dev", false, "use ssh to devploy proxy server ; example -H 'user@host:port/pwd' -dev ")
+	flag.BoolVar(&sshCli, "ssh", false, "use ssh to devploy proxy server ; example -H 'user@host:port/pwd' -ssh ")
 	flag.BoolVar(&update, "update", false, "set this server update by git")
 	flag.BoolVar(&vultrmode, "vultr", false, "true to use vultr api to search host")
 	flag.BoolVar(&gitmode, "git", false, "true to use git to login group proxy")
@@ -58,6 +60,10 @@ func main() {
 	flag.Parse()
 	if build {
 		router.BuildInit()
+		os.Exit(0)
+	}
+	if sshCli {
+		deploy.SSHCli(server)
 		os.Exit(0)
 	}
 

@@ -60,9 +60,9 @@
                     <a href="{{.WebBaseUrl}}/z-rule"><i class="fa fa-globe fa-lg"></i>
                     <span class="nav-label" langtag="scheme-host">本地列表（不使用代理,只适用路由器）</span></a>
                 </li>
-                <li class="{{if eq "reverse-client" .Menu}}active{{end}}">
-                    <a href="{{.WebBaseUrl}}/"><i class="fa fa-retweet fa-lg"></i>
-                    <span class="nav-label" langtag="reverse-client">开启路由器（只在路由器上使用）</span></a>
+                <li class="{{if eq "reverse-client" .Menu}}active{{end}}" >
+                    <a href="#"><i class="fa fa-retweet fa-lg" id="start-route-tag" onclick="return SetRouter(false)" ></i>
+                    <span class="nav-label" langtag="reverse-client" id="start-route-tag-tag"  >xxx路由器（只在路由器上使用）</span></a>
                 </li>
                 <!-- <li class="{{if eq "reverse-client" .Menu}}active{{end}}">
                     <a href="{{.WebBaseUrl}}/index/reverse-session"><i class="fa fa-retweet fa-lg"></i>
@@ -185,6 +185,36 @@ function ModalSet(body){
 }
 
 
+function CheckRoute_state(){
+    fetch("/z-route",{
+        method:"POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            op:"check",
+        })
+    }).then((response) => {
+        try{
+            return response.json();
+        }catch {
+            return null;
+        }
+    }).then(d=>{
+        if (d.msg.can){
+            
+            if (!d.msg.running){
+                let r = document.querySelector("#start-route-tag-tag");
+                r.textContent = "Start Router"
+                document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
+            }else{
+                let r = document.querySelector("#start-route-tag-tag");
+                r.textContent = "Stop Router"
+                document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
+            }
+            
+        }
+    })
+}
+
 function SetRouter(st) {
     // document.querySelector("#router").style.display = "none"
     if (st){
@@ -202,11 +232,11 @@ function SetRouter(st) {
                 return null;
             }
         }).then(d=>{
-            document.querySelector("#router").style.display = "flex"
+            
             if (d.status =="ok"){
-                let r = document.querySelector("#router");
+                let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Stop Router"
-                r.setAttribute("onclick", 'return SetRouter(false)')
+                document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
             }
         })   
     }else{
@@ -224,16 +254,18 @@ function SetRouter(st) {
                 return null;
             }
         }).then(d=>{
-            document.querySelector("#router").style.display = "flex"
+            document.querySelector("#start-route-tag").style.display = "flex"
             if (d.status =="ok"){
-                let r = document.querySelector("#router");
+                let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Start Router"
-                r.setAttribute("onclick", 'return SetRouter(true)')
+                document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
             }
         })   
 
     }
 }
+
+setInterval(CheckRoute_state, 4000)
 
 </script>
 {{/*<script src="http://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>*/}}

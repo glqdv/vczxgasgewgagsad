@@ -21,7 +21,6 @@ import (
 	"gitee.com/dark.H/ProxyZ/connections/protls"
 	"gitee.com/dark.H/ProxyZ/router"
 	"gitee.com/dark.H/ProxyZ/servercontroll"
-	"gitee.com/dark.H/ProxyZ/vpn"
 	"gitee.com/dark.H/gs"
 )
 
@@ -109,17 +108,17 @@ type ClientControl struct {
 	inited         bool
 	IsBreak        bool
 	IsRunning      bool
-	vpnHandler     *vpn.VPNHandler
-	setTimer       *time.Timer
-	failedHost     Set[string]
-	GetNewRoute    func() string
-	proxyProfiles  chan *base.ProtocolConfig
-	initProfiles   int
-	confNum        int
-	errCon         int
-	errorid        gs.Dict[int]
-	ReportingMark  gs.Dict[bool]
-	statusSignal   gs.Strs
+
+	setTimer      *time.Timer
+	failedHost    Set[string]
+	GetNewRoute   func() string
+	proxyProfiles chan *base.ProtocolConfig
+	initProfiles  int
+	confNum       int
+	errCon        int
+	errorid       gs.Dict[int]
+	ReportingMark gs.Dict[bool]
+	statusSignal  gs.Strs
 }
 
 func NewClientControll(addr string, listenport int, channelNum int) *ClientControl {
