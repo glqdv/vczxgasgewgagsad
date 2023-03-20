@@ -29,7 +29,6 @@ func main() {
 	httpmode := false
 	noopenbrowser := false
 	log := false
-	// useVPN := false
 	global := false
 	build := false
 	sshCli := false

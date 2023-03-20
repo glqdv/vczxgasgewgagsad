@@ -102,7 +102,6 @@ type ClientControl struct {
 	stdout         io.WriteCloser
 	closed         bool
 	closeFlag      bool
-	Usevpn         bool
 	dnsservice     bool
 	IfStartDNS     bool
 	inited         bool

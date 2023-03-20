@@ -24,14 +24,13 @@ type Protocol interface {
 }
 
 type ProxyTunnel struct {
-	cons      gs.List[net.Conn]
-	alive     int
-	lock      sync.RWMutex
-	protocl   Protocol
-	UseSmux   bool
-	On        bool
-	ZeroToDel bool
-	// vpnHandler   *vpn.VPNHandler
+	cons         gs.List[net.Conn]
+	alive        int
+	lock         sync.RWMutex
+	protocl      Protocol
+	UseSmux      bool
+	On           bool
+	ZeroToDel    bool
 	ControllFunc func(rawHost string, con net.Conn) (err error)
 }
 
@@ -118,16 +117,7 @@ func (pt *ProxyTunnel) SetControllFunc(l func(rawHost string, con net.Conn) (err
 	pt.ControllFunc = l
 }
 
-// func (pt *ProxyTunnel) HandleConnTun(con net.Conn) {
-// 	defer con.Close()
-// 	pt.PipeReadWriteCloser(con, pt.vpnHandler)
-// }
-
 func (pt *ProxyTunnel) HandleConnAsync(con net.Conn) {
-	// if pt.vpnHandler != nil {
-	// 	pt.HandleConnTun(con)
-	// 	return
-	// }
 
 	host, _, _, err := prosocks5.GetServerRequest(con)
 	if err != nil {
