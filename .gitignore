@@ -10,3 +10,4 @@ cmds/z-server/z-server
 examples/*
 *.DS_Store
 *geodb
+ProxyZ
