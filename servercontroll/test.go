@@ -35,8 +35,14 @@ func TestServer(server string) (t time.Duration, IDS gs.List[string]) {
 	}
 
 	if res, err := HTTPSGet(f+"/proxy-info", 7); err == nil {
-
-		res.Json().Every(func(k string, v any) {
+		buf := res.Bytes()
+		djson := make(gs.Dict[any])
+		err = json.Unmarshal(buf, &djson)
+		if err != nil {
+			gs.Str("err:" + err.Error()).Color("r").Println("TestServer")
+			return time.Duration(30000) * time.Millisecond, IDS
+		}
+		djson.Every(func(k string, v any) {
 			if k == "status" {
 				// gs.S(v).Color("g").Println(server)
 				if v != "ok" {
