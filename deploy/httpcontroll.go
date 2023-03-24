@@ -361,6 +361,9 @@ func localSetupHandler() http.Handler {
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
 						go func() {
+							if !router.IsRouter() {
+								go globalClient.ClientConf.HttpListen()
+							}
 							if err := globalClient.ClientConf.Socks5Listen(); err == clientcontroll.ErrRouteISBreak {
 								// for {
 
@@ -463,16 +466,24 @@ func localSetupHandler() http.Handler {
 
 			case "start":
 				gs.Str("Start Fire ").Println()
-				router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
-				if user != "" && pwd != "" && last != "" {
-					gs.Dict[any]{
-						"name":     user,
-						"password": pwd,
-						"last":     last,
-						"proxy":    "ok",
-					}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+				if router.IsRouter() {
+					router.StartFireWall("127.0.0.1:" + gs.S(LOCAL_PORT).Str())
+					if user != "" && pwd != "" && last != "" {
+						gs.Dict[any]{
+							"name":     user,
+							"password": pwd,
+							"last":     last,
+							"proxy":    "ok",
+						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+					}
+					Reply(w, "start", true)
+				} else {
+					if !router.IfOpenGloabl() {
+						router.SetGloabl(LOCAL_PORT)
+					}
+					Reply(w, "start", true)
+
 				}
-				Reply(w, "start", true)
 				return
 			case "check":
 				if router.IsRouter() {
@@ -484,26 +495,33 @@ func localSetupHandler() http.Handler {
 					}, true)
 
 				} else {
-
+					_, ifstart, status := router.CheckStatus()
 					Reply(w, gs.Dict[any]{
 						"can":     false,
-						"running": false,
-						"healty":  false,
+						"running": ifstart,
+						"healty":  status,
 					}, true)
 
 				}
 				return
 			case "stop":
-				router.StopFirewall()
-				proxy = ""
-				Reply(w, "stop", true)
-				if user != "" && pwd != "" && last != "" {
-					gs.Dict[any]{
-						"name":     user,
-						"password": pwd,
-						"last":     last,
-						"proxy":    "",
-					}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+				if router.IsRouter() {
+					router.StopFirewall()
+					proxy = ""
+
+					if user != "" && pwd != "" && last != "" {
+						gs.Dict[any]{
+							"name":     user,
+							"password": pwd,
+							"last":     last,
+							"proxy":    "",
+						}.Json().ToFile(apath.Str(), gs.O_NEW_WRITE)
+					}
+					Reply(w, "stop", true)
+
+				} else {
+					router.SetGloablOff()
+					Reply(w, "stop", true)
 				}
 				return
 			}
@@ -599,6 +617,11 @@ func localSetupHandler() http.Handler {
 							}
 						})
 						globalClient.ClientConf.SetRouteLoc(loc)
+						if !router.IsRouter() {
+							go func() {
+								globalClient.ClientConf.HttpListen()
+							}()
+						}
 						go func() {
 							err := globalClient.ClientConf.Socks5Listen()
 							if err == clientcontroll.ErrRouteISBreak {
@@ -648,7 +671,11 @@ func localSetupHandler() http.Handler {
 
 						nowhost = string(globalClient.Routes[0].Host)
 						globalClient.ClientConf = clientcontroll.NewClientControll(nowhost, LOCAL_PORT, 70)
-
+						if !router.IsRouter() {
+							go func() {
+								globalClient.ClientConf.HttpListen()
+							}()
+						}
 						go func() {
 							err := globalClient.ClientConf.Socks5Listen()
 							for {

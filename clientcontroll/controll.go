@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -118,6 +119,7 @@ type ClientControl struct {
 	errorid       gs.Dict[int]
 	ReportingMark gs.Dict[bool]
 	statusSignal  gs.Strs
+	srv           *http.Server
 }
 
 func NewClientControll(addr string, listenport int, channelNum int) *ClientControl {
@@ -185,6 +187,9 @@ func (c *ClientControl) SetIfStartDNS(b bool) {
 func (c *ClientControl) TryClose() {
 	c.closeFlag = true
 	c.SetRouteLoc("Closing...")
+	if c.srv != nil {
+		c.srv.Close()
+	}
 	go func() {
 		if c, err := net.Dial("tcp", string(gs.Str("127.0.0.1:%d").F(c.ListenPort))); err == nil {
 			time.Sleep(100 * time.Millisecond)

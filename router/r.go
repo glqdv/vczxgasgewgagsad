@@ -290,6 +290,11 @@ func CheckStatus() (can, startFirewall, status bool) {
 			can = true
 		}
 	}
+	if !IsRouter() {
+		startFirewall = IfOpenGloabl()
+		status = false
+		return
+	}
 	if res := gs.Str("/etc/firewall.user").MustAsFile(); res == "" {
 		kill("redsocks")
 		return

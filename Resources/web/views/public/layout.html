@@ -204,13 +204,27 @@ function CheckRoute_state(){
             if (!d.msg.running){
                 let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Start Router"
+                r.setAttribute("onclick", 'return SetRouter(true)')
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
             }else{
                 let r = document.querySelector("#start-route-tag-tag");
                 r.textContent = "Stop Router"
+                r.setAttribute("onclick", 'return SetRouter(false)')
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
             }
             
+        }else{
+            if (!d.msg.running){
+                let r = document.querySelector("#start-route-tag-tag");
+                r.textContent = "Start Global Mode"
+                r.setAttribute("onclick", 'return SetRouter(true)')
+                document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
+            }else{
+                let r = document.querySelector("#start-route-tag-tag");
+                r.textContent = "Stop Global Mode"
+                r.setAttribute("onclick", 'return SetRouter(false)')
+                document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
+            }
         }
     })
 }
@@ -235,8 +249,10 @@ function SetRouter(st) {
             
             if (d.status =="ok"){
                 let r = document.querySelector("#start-route-tag-tag");
-                r.textContent = "Stop Router"
+                r.textContent = "Stop"
+                r.setAttribute("onclick", 'return SetRouter(false)')
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(false)')
+                
             }
         })   
     }else{
@@ -257,7 +273,8 @@ function SetRouter(st) {
             document.querySelector("#start-route-tag").style.display = "flex"
             if (d.status =="ok"){
                 let r = document.querySelector("#start-route-tag-tag");
-                r.textContent = "Start Router"
+                r.textContent = "Start"
+                r.setAttribute("onclick", 'return SetRouter(true)')
                 document.querySelector("#start-route-tag").setAttribute("onclick", 'return SetRouter(true)')
             }
         })   

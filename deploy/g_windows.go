@@ -24,6 +24,14 @@ func IfProxyStart() bool {
 	return false
 }
 
+func StopProxy() {
+	TMP2 := `
+	Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyServer -Value ""
+	`
+	result, err := exec.Command("powershell.exe", "-command", TMP2).Output()
+
+}
+
 func ProxySet(port int) {
 	sd := fmt.Sprintf("127.0.0.1:%d", port+1)
 	if port == 0 {

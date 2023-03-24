@@ -47,13 +47,17 @@ func (client *ClientControl) listenHttpProxy(httpPort int) (err error) {
 	}
 
 	listenAddr := ":" + gs.S(httpPort)
-
-	srv := &http.Server{
+	if client.srv != nil {
+		gs.Str("Close old http listener").Println("http proxy")
+		client.srv.Close()
+	}
+	client.srv = &http.Server{
 		Addr:    listenAddr.Str(),
 		Handler: proxy,
 	}
 	IsStartHttpProxy = true
 	gs.Str("HTTP Proxy Listen in http://localhost:%d").F(httpPort).Println("Service")
-	srv.ListenAndServe()
+	client.srv.ListenAndServe()
+
 	return
 }
