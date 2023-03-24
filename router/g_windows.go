@@ -52,7 +52,7 @@ func ProxySet(port int) {
 		}
 	}	
 	` + fmt.Sprintf("SetSystemProxy '%s'", sd)
-	exe := exec.Command("powershell.exe", "-windowstyle", "hidden", "-Command", TMP)
+	exe := exec.Command("powershell.exe", "-Command", TMP)
 	exe.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	exe.Output()
 }
@@ -61,9 +61,9 @@ func StopProxy() {
 	TMP2 := `
 	Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyServer -Value ""
 	`
-	result, err := exec.Command("powershell.exe", "-command", TMP2).Output()
+	exec.Command("powershell.exe", "-command", TMP2).Output()
 	TMP2 = `
 	Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -Value "0"
 	`
-	result, err := exec.Command("powershell.exe", "-command", TMP2).Output()
+	exec.Command("powershell.exe", "-command", TMP2).Output()
 }

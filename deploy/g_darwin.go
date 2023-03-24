@@ -11,8 +11,13 @@ func IfProxyStart() bool {
 
 func StopProxy() {
 	gs.Str(`networksetup -setwebproxystate "Wi-Fi" off`).Exec()
+	// gs.Str(`networksetup -setsecurewebproxy "Wi-Fi" `).F(i + 1).Exec(
+	gs.Str(`networksetup -setsecurewebproxystate "Wi-Fi" off`).Exec()
 }
 
 func ProxySet(i int) {
+	gs.Str(`networksetup -setsecurewebproxy "Wi-Fi" 127.0.0.1 %d`).F(i + 1).Exec()
+	gs.Str(`networksetup -setsecurewebproxystate "Wi-Fi" on`).Exec()
 	gs.Str(`networksetup -setwebproxy "Wi-Fi" 127.0.0.1 %d`).F(i + 1).Exec()
+	gs.Str(`networksetup -setwebproxystate "Wi-Fi" on`).Exec()
 }

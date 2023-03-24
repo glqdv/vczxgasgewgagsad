@@ -15,9 +15,9 @@ const isWindows = os.platform() === "win32";
 log.transports.file.level = true;
 const createWindow = () => {
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
-    resizable: false,
+    width: 1800,
+    height: 1600,
+    resizable: true,
     webPreferences: {
         preload: path.join(__dirname, 'preload.js')
     }
