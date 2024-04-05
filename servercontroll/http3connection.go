@@ -10,8 +10,8 @@ import (
 	"gitee.com/dark.H/ProxyZ/asset"
 	"gitee.com/dark.H/gn"
 	"gitee.com/dark.H/gs"
-	"github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/http3"
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 )
 
 func GetHTTP3Client(usetls bool, timeout ...int) (client *http.Client) {

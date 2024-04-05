@@ -23,7 +23,7 @@ func NewQuicClient(config *base.ProtocolConfig) (qc *QuicClient, err error) {
 	qc.addr = config.RemoteAddr()
 	qc.tlsconfig, _ = config.GetQuicConfig()
 
-	conn, err := quic.DialAddrContext(context.Background(), qc.addr, qc.tlsconfig, nil)
+	conn, err := quic.DialAddr(context.Background(), qc.addr, qc.tlsconfig, nil)
 	// conn, err := quic.DialAddr(qc.addr, tlsconfig, nil)
 
 	if err != nil {
@@ -63,7 +63,7 @@ func (q *QuicClient) NewConnnect() (con net.Conn, err error) {
 	if err != nil {
 
 		// cc, _ := context.WithTimeout(context.Background(), 10*time.Second)
-		if conn, err = quic.DialAddrContext(context.Background(), q.addr, q.tlsconfig, nil); err != nil {
+		if conn, err = quic.DialAddr(context.Background(), q.addr, q.tlsconfig, nil); err != nil {
 			q.isclosed = true
 			q.isclosed = true
 			return nil, errors.New("[try agin quic new connect err]: " + err.Error())

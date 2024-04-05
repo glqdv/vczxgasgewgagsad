@@ -16,8 +16,8 @@ import (
 	"gitee.com/dark.H/ProxyZ/connections/base"
 
 	"gitee.com/dark.H/gs"
-	"github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/http3"
+	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3"
 )
 
 var (
